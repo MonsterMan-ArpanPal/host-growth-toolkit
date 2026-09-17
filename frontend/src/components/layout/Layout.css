@@ -1,0 +1,191 @@
+.dashboard-layout {
+  display: flex;
+  min-height: 100vh;
+  background-image: url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  position: relative;
+}
+
+.dashboard-layout::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.7) 100%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.sidebar {
+  width: var(--sidebar-width, 256px);
+  background: rgba(15, 14, 13, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--white);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 20;
+}
+
+.sidebar-brand {
+  height: var(--header-height, 64px);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--sp-6);
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.brand-dot {
+  color: var(--accent-500);
+}
+
+.sidebar-nav {
+  padding: var(--sp-4) 0;
+  flex-grow: 1;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-6);
+  color: var(--gray-400);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: var(--text-sm);
+  transition: all var(--transition-fast);
+  border-left: 3px solid transparent;
+}
+
+.sidebar-link:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--white);
+}
+
+.sidebar-link.active {
+  color: var(--white);
+  background-color: rgba(255, 255, 255, 0.05);
+  border-left-color: var(--accent-500);
+}
+
+.sidebar-footer {
+  padding: var(--sp-4);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.host-profile {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.host-profile:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: var(--gray-800);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-400);
+}
+
+.host-name {
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.dashboard-main {
+  flex: 1;
+  margin-left: var(--sidebar-width, 256px);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.header {
+  height: var(--header-height, 64px);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--sp-8);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+}
+
+.property-selector {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--white);
+  transition: background var(--transition-fast);
+}
+
+.property-selector:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  padding: var(--sp-2);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.icon-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: var(--white);
+}
+
+.dashboard-content {
+  flex: 1;
+  padding: var(--sp-8);
+  overflow-y: auto;
+  position: relative;
+  z-index: 1;
+}
