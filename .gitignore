@@ -1,0 +1,15 @@
+data/raw/
+data/external/
+
+__pycache__/
+.ipynb_checkpoints/
+node_modules/
+dist/
+build/
+.venv/
+venv/
+
+.env
+.env.*
+*.key
+*.pem
