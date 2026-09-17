@@ -20,8 +20,8 @@
 
 .property-selector, .date-picker {
   padding: var(--sp-3) var(--sp-4);
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: var(--radius-md);
   font-size: var(--text-base);
   color: var(--white);
@@ -30,7 +30,12 @@
 }
 
 .property-selector:focus, .date-picker:focus {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.property-selector option, .date-picker option {
+  background-color: var(--gray-900);
+  color: var(--white);
 }
 
 .pricing-content {
@@ -47,14 +52,14 @@
 
 /* Common Card Styles */
 .pricing-hero, .pricing-factors, .comparable-listings, .pricing-controls, .pricing-calendar {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   padding: var(--sp-8);
   margin-bottom: var(--sp-6);
-  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.4);
   color: var(--white);
 }
 
@@ -290,11 +295,11 @@
 
 .stat-box {
   flex: 1;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
   padding: var(--sp-4);
   border-radius: var(--radius-md);
   text-align: center;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .stat-box.highlight {
@@ -365,8 +370,8 @@
 
 .currency-prefix {
   padding: var(--sp-3) var(--sp-4);
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-right: none;
   border-radius: var(--radius-md) 0 0 var(--radius-md);
   color: var(--white);
@@ -375,8 +380,8 @@
 .custom-price-input-group input {
   flex-grow: 1;
   padding: var(--sp-3);
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-left: none;
   outline: none;
   color: var(--white);
@@ -391,7 +396,7 @@
   padding: var(--sp-3) var(--sp-6);
   background: rgba(255, 255, 255, 0.1);
   color: var(--white);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 0 var(--radius-md) var(--radius-md) 0;
   font-weight: 500;
   cursor: pointer;
@@ -403,7 +408,7 @@
 }
 
 .price-bounds {
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
   padding-top: var(--sp-6);
   margin-bottom: var(--sp-6);
 }
@@ -440,9 +445,9 @@
 .bound-input input {
   width: 100%;
   padding: var(--sp-2);
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.3);
   color: var(--white);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: var(--radius-sm);
   box-sizing: border-box;
 }
@@ -456,7 +461,7 @@
 
 /* Pricing Calendar */
 .calendar-grid {
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: var(--radius-md);
   overflow: hidden;
 }
@@ -464,8 +469,8 @@
 .calendar-header-row {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  background: rgba(255, 255, 255, 0.1);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .calendar-day-name {
@@ -485,8 +490,8 @@
 .calendar-cell {
   aspect-ratio: 1;
   padding: var(--sp-2);
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -500,7 +505,7 @@
 }
 
 .calendar-cell.empty {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.2);
   cursor: default;
 }
 

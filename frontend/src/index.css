@@ -30,17 +30,17 @@
   --brand-600: #3b6998;
   --brand-500: #4e83b4;
 
-  /* Accent (warm terracotta — hospitality warmth) */
-  --accent-50: #fdf5ef;
-  --accent-100: #fce8d5;
-  --accent-200: #f8ccaa;
-  --accent-300: #f3a974;
-  --accent-400: #ed7d3c;
-  --accent-500: #e86420;
-  --accent-600: #c74e16;
-  --accent-700: #a53b14;
-  --accent-800: #843118;
-  --accent-900: #6b2b17;
+  /* Accent (luxury muted terracotta) */
+  --accent-50: #fbf6f4;
+  --accent-100: #f5eae5;
+  --accent-200: #ebd3ca;
+  --accent-300: #dfb4a5;
+  --accent-400: #cf8e78;
+  --accent-500: #c2694d;
+  --accent-600: #ad5136;
+  --accent-700: #8f4029;
+  --accent-800: #783826;
+  --accent-900: #643123;
 
   /* Semantic */
   --success-50: #ecfdf5;

@@ -31,8 +31,10 @@ const Dashboard = () => {
         console.error("Failed to load dashboard data", error);
         // Fallback dummy data if API fails or doesn't return anything
         setBookings([
-          { id: '1', guestName: 'Sarah Jenkins', propertyName: 'The London Townhouse', checkIn: '2023-09-20', checkOut: '2023-09-23', status: 'confirmed', totalAmount: 540 },
-          { id: '2', guestName: 'Michael Chen', propertyName: 'Brighton Sea View', checkIn: '2023-09-24', checkOut: '2023-09-28', status: 'pending', totalAmount: 720 }
+          { id: '1', guestName: 'Sarah Jenkins', propertyName: 'The London Townhouse', checkIn: '2023-09-20', checkOut: '2023-09-23', status: 'confirmed', totalAmount: 540, avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=100&h=100&q=80' },
+          { id: '2', guestName: 'Michael Chen', propertyName: 'Brighton Sea View', checkIn: '2023-09-24', checkOut: '2023-09-28', status: 'pending', totalAmount: 720, avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=100&h=100&q=80' },
+          { id: '3', guestName: 'Emma Watson', propertyName: 'The London Townhouse', checkIn: '2023-10-02', checkOut: '2023-10-05', status: 'confirmed', totalAmount: 480, avatarUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=100&h=100&q=80' },
+          { id: '4', guestName: 'David Miller', propertyName: 'Cornwall Cottage', checkIn: '2023-10-12', checkOut: '2023-10-16', status: 'confirmed', totalAmount: 850, avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=100&h=100&q=80' }
         ]);
         setOpportunities([
           { date: '2023-09-19', currentPrice: 150, recommendedPrice: 166, uplift: 16, reason: 'High demand weekend' }
@@ -81,10 +83,16 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard-container">
-      {/* Welcome Header */}
+      {/* Welcome Header with Image */}
       <header className="dashboard-header animate-fade-in-up">
-        <h1 className="welcome-title">{getGreeting()}, James</h1>
-        <p className="welcome-subtitle">Here's how your properties are performing</p>
+        <div className="dashboard-header-bg" style={{
+          backgroundImage: `url('https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80')`
+        }}>
+          <div className="dashboard-header-content">
+            <h1 className="welcome-title">{getGreeting()}, James</h1>
+            <p className="welcome-subtitle">Here's how your properties are performing today.</p>
+          </div>
+        </div>
       </header>
 
       {/* Stats Grid */}
@@ -142,7 +150,11 @@ const Dashboard = () => {
                 <div key={booking.id} className="booking-item">
                   <div className="booking-info">
                     <div className="guest-avatar">
-                      {getInitials(booking.guestName)}
+                      {booking.avatarUrl ? (
+                        <img src={booking.avatarUrl} alt={booking.guestName} className="guest-avatar-img" />
+                      ) : (
+                        getInitials(booking.guestName)
+                      )}
                     </div>
                     <div className="guest-details">
                       <span className="guest-name">{booking.guestName}</span>
@@ -180,11 +192,22 @@ const Dashboard = () => {
             ) : (
               opportunities.map((opp, idx) => (
                 <div key={idx} className="opportunity-item">
-                  <div className="opp-date-info">
-                    <span className="opp-date">
-                      {new Date(opp.date).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' })}
-                    </span>
-                    <span className="opp-reason">{opp.reason}</span>
+                  <div className="opp-date-info" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '8px',
+                      backgroundImage: 'url(https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80)',
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      flexShrink: 0
+                    }} />
+                    <div>
+                      <span className="opp-date" style={{ display: 'block' }}>
+                        {new Date(opp.date).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' })}
+                      </span>
+                      <span className="opp-reason" style={{ display: 'block' }}>{opp.reason}</span>
+                    </div>
                   </div>
                   
                   <div className="opp-price-info">
