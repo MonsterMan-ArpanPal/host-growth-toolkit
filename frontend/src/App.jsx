@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard'
 import PricingPage from './pages/PricingPage'
 import ListingsPage from './pages/ListingsPage'
 import BookingsPage from './pages/BookingsPage'
+import CalendarPage from './pages/CalendarPage'
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
       <Route path="/dashboard" element={<DashboardLayout />}>
         <Route index element={<Dashboard />} />
         <Route path="pricing" element={<PricingPage />} />
+        <Route path="calendar" element={<CalendarPage />} />
         <Route path="listings" element={<ListingsPage />} />
         <Route path="bookings" element={<BookingsPage />} />
       </Route>

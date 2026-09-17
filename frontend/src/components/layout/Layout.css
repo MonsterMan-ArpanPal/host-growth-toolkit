@@ -7,6 +7,15 @@
   position: relative;
 }
 
+.dashboard-layout h1, 
+.dashboard-layout h2, 
+.dashboard-layout h3, 
+.dashboard-layout h4, 
+.dashboard-layout h5, 
+.dashboard-layout h6 {
+  color: var(--white);
+}
+
 .dashboard-layout::before {
   content: '';
   position: fixed;
@@ -108,6 +117,24 @@
   align-items: center;
   justify-content: center;
   color: var(--gray-400);
+}
+
+/* Common Page Header Styles */
+.page-title {
+  font-family: var(--font-display);
+  font-size: var(--text-3xl);
+  font-weight: 700;
+  color: var(--white);
+  text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+  margin-bottom: var(--sp-2);
+  margin-top: 0;
+}
+
+.page-subtitle {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: var(--text-base);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+  margin-top: 0;
 }
 
 .host-name {

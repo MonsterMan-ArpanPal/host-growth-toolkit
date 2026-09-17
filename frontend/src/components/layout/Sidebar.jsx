@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, TrendingUp, Home, Calendar, User } from 'lucide-react'
+import { LayoutDashboard, TrendingUp, Home, Calendar as CalendarIcon, CalendarDays, User } from 'lucide-react'
 
 function Sidebar() {
   return (
@@ -21,8 +21,12 @@ function Sidebar() {
           <Home size={20} />
           <span>Listings</span>
         </NavLink>
+        <NavLink to="/dashboard/calendar" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+          <CalendarDays size={20} />
+          <span>Calendar</span>
+        </NavLink>
         <NavLink to="/dashboard/bookings" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
-          <Calendar size={20} />
+          <CalendarIcon size={20} />
           <span>Bookings</span>
         </NavLink>
       </nav>

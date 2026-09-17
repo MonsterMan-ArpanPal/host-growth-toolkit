@@ -25,7 +25,7 @@ export default function PricingFactors({ factors, loading }) {
                 <span className="factor-label">{factor.label}</span>
                 {factor.pct && (
                   <span className={`factor-pct ${factor.pct > 0 ? 'positive' : factor.pct < 0 ? 'negative' : ''}`}>
-                    {factor.pct > 0 ? '+' : ''}{factor.pct}%
+                    {factor.pct > 0 ? '+' : ''}{Number(factor.pct).toFixed(1)}%
                   </span>
                 )}
               </div>
