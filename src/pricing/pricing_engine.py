@@ -83,6 +83,15 @@ class PricingConfig:
     # The market_pressure_score value treated as "neutral" (no change).
     neutral_pressure: float = 50.0
 
+    # Additive event premiums by event type (conservative, bounded).
+    # Each value is an additive % adjustment (0.05 -> +5%).
+    event_premiums: Dict[str, float] = field(default_factory=lambda: {
+        "holiday":    0.06,   # +6% for holidays (Christmas, NYE, etc.)
+        "sports":     0.05,   # +5% for major sporting events (Wimbledon)
+        "festival":   0.04,   # +4% for festivals (Notting Hill Carnival)
+        "conference": 0.03,   # +3% for conferences/shows (Chelsea Flower Show)
+    })
+
 
 # ---------------------------------------------------------------------------
 # Recommendation result
@@ -109,6 +118,7 @@ class PricingRecommendation:
     event_active: bool = False
     event_name: Optional[str] = None
     event_type: Optional[str] = None
+    event_adjustment_pct: float = 0.0
     seasonality_context: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
@@ -129,6 +139,7 @@ class PricingRecommendation:
             "event_active": self.event_active,
             "event_name": self.event_name,
             "event_type": self.event_type,
+            "event_adjustment_pct": round(self.event_adjustment_pct, 2),
             "seasonality_context": self.seasonality_context,
             "factors": self.factors,
         }
@@ -442,8 +453,21 @@ class PricingEngine:
                 f"Weekend premium: +{cfg.weekend_premium*100:.0f}%"
             )
 
-        # ---- 4. Total adjustment (capped at max_adjustment) ----
-        raw_total = comp_influence + pressure_influence + weekend_adj
+        # ---- 4. Event premium (from London event calendar) ----
+        from pricing.events import get_event_context
+        event_ctx = get_event_context(target_date)
+
+        event_adj = 0.0
+        if event_ctx["event_active"] and event_ctx["event_type"]:
+            event_adj = cfg.event_premiums.get(event_ctx["event_type"], 0.0)
+            if event_adj > 0:
+                factors.append(
+                    f"Event boost ({event_ctx['event_name']}): "
+                    f"+{event_adj*100:.0f}%"
+                )
+
+        # ---- 5. Total adjustment (capped at max_adjustment) ----
+        raw_total = comp_influence + pressure_influence + weekend_adj + event_adj
         total_adj = float(np.clip(raw_total, -cfg.max_adjustment, cfg.max_adjustment))
 
         fusion_adjustment_pct = total_adj * 100.0
@@ -451,6 +475,7 @@ class PricingEngine:
             f"Fusion V2: comp {comp_influence*100:+.1f}% "
             f"+ pressure {pressure_influence*100:+.1f}% "
             f"+ weekend {weekend_adj*100:+.1f}% "
+            f"+ event {event_adj*100:+.1f}% "
             f"= {fusion_adjustment_pct:+.1f}% (capped at +/-{cfg.max_adjustment*100:.0f}%)"
         )
         factors.append(fusion_explanation)
@@ -475,9 +500,6 @@ class PricingEngine:
 
         adjustment_pct = total_adj * 100.0
 
-        from pricing.events import get_event_context
-        event_ctx = get_event_context(target_date)
-
         return PricingRecommendation(
             base_price=base_price,
             recommended_price=float(recommended),
@@ -492,6 +514,7 @@ class PricingEngine:
             event_active=event_ctx["event_active"],
             event_name=event_ctx["event_name"],
             event_type=event_ctx["event_type"],
+            event_adjustment_pct=round(event_adj * 100.0, 2),
             seasonality_context=event_ctx["seasonality_context"],
             factors=factors,
         )
