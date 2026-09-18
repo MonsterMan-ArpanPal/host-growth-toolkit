@@ -45,7 +45,7 @@ export default function ListingsPage() {
             id: 2,
             type: 'description',
             title: 'Missing Amenities in Title',
-            description: 'Top performing listings in your area highlight "Free Parking". Wayzyy AI can rewrite your title to include this.',
+            description: 'Top performing listings in your area highlight "Free Parking". host It AI can rewrite your title to include this.',
             icon: <Edit3 size={20} />
           }
         ]
@@ -135,7 +135,7 @@ export default function ListingsPage() {
               <div className="glass-card" style={{ textAlign: 'center', padding: 'var(--sp-8)' }}>
                 <Check size={48} color="#34d399" style={{ marginBottom: 'var(--sp-4)' }} />
                 <h4>Looking Good!</h4>
-                <p style={{ color: 'rgba(255,255,255,0.7)' }}>Wayzyy AI found no immediate issues with your listing.</p>
+                <p style={{ color: 'rgba(255,255,255,0.7)' }}>host It AI found no immediate issues with your listing.</p>
               </div>
             ) : (
               healthData.alerts.map(alert => (

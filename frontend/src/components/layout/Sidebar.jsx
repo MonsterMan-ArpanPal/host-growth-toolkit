@@ -10,7 +10,7 @@ function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
-        wayzyy<span className="brand-dot">.</span>
+        host It<span className="brand-dot">.</span>
       </div>
       
       <nav className="sidebar-nav">
