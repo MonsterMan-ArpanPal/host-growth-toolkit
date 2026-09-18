@@ -219,9 +219,8 @@ export async function fetchPricingRecommendation(propertyId, date) {
       eventContext: data.event_active ? `${data.event_name} (${data.event_type})` : null
     };
   } catch (err) {
-    console.error("FastAPI backend failed, falling back to mock", err);
-    await delay(400);
-    return getPricingRecommendation(propertyId, date);
+    console.error("FastAPI backend failed", err);
+    throw err;
   }
 }
 
