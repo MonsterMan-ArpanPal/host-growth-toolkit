@@ -81,6 +81,9 @@ const Dashboard = () => {
     ))
   );
 
+  const user = JSON.parse(localStorage.getItem('wayzyy_user') || '{}');
+  const firstName = user.first_name || 'there';
+
   return (
     <div className="dashboard-container">
       {/* Welcome Header with Image */}
@@ -89,7 +92,7 @@ const Dashboard = () => {
           backgroundImage: `url('https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80')`
         }}>
           <div className="dashboard-header-content">
-            <h1 className="welcome-title">{getGreeting()}, James</h1>
+            <h1 className="welcome-title">{getGreeting()}, {firstName}</h1>
             <p className="welcome-subtitle">Here's how your properties are performing today.</p>
           </div>
         </div>
