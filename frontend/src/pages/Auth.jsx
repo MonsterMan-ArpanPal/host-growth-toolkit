@@ -27,19 +27,25 @@ const Auth = () => {
     setLoading(true);
 
     try {
+      let data;
       if (isLogin) {
-        await login({ email: formData.email, password: formData.password });
+        data = await login(formData.email, formData.password);
       } else {
-        await signup({
+        data = await signup({
           first_name: formData.firstName,
           last_name: formData.lastName,
           email: formData.email,
           password: formData.password
         });
       }
-      navigate('/dashboard');
+      
+      if (data.user && data.user.property_id) {
+        navigate('/dashboard');
+      } else {
+        navigate('/setup');
+      }
     } catch (err) {
-      setError(err.response?.data?.detail || 'An error occurred. Please try again.');
+      setError(err.message || 'An error occurred. Please try again.');
     } finally {
       setLoading(false);
     }

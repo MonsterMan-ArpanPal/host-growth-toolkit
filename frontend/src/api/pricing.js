@@ -22,18 +22,53 @@ import {
 const delay = (ms = 300) =>
   new Promise(resolve => setTimeout(resolve, 150 + Math.random() * ms));
 
-// ─── Auth ───────────────────────────────────────────────────────
 export async function login(email, password) {
-  await delay();
-  // In production: POST /api/auth/login
-  if (!email || !password) throw new Error('Email and password are required');
-  return { token: 'mock_token_xyz', user: host };
+  const res = await fetch('http://localhost:8000/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password })
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.detail || 'Login failed');
+  }
+  const data = await res.json();
+  localStorage.setItem('wayzyy_user', JSON.stringify(data.user));
+  return data;
 }
 
-export async function signup(data) {
-  await delay();
-  // In production: POST /api/auth/signup
-  return { token: 'mock_token_xyz', user: { ...host, ...data } };
+export async function signup(userData) {
+  const res = await fetch('http://localhost:8000/api/auth/signup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(userData)
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.detail || 'Signup failed');
+  }
+  const data = await res.json();
+  localStorage.setItem('wayzyy_user', JSON.stringify(data.user));
+  return data;
+}
+
+export async function setupProperty(propertyData) {
+  const user = JSON.parse(localStorage.getItem('wayzyy_user') || '{}');
+  if (!user.email) throw new Error('Not logged in');
+  
+  const res = await fetch('http://localhost:8000/api/properties', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: user.email, ...propertyData })
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.detail || 'Setup failed');
+  }
+  const data = await res.json();
+  user.property_id = data.property_id;
+  localStorage.setItem('wayzyy_user', JSON.stringify(user));
+  return data;
 }
 
 // ─── Host ───────────────────────────────────────────────────────
@@ -46,6 +81,16 @@ export async function getHost() {
 // ─── Properties ─────────────────────────────────────────────────
 export async function getProperties() {
   await delay(200);
+  const user = JSON.parse(localStorage.getItem('wayzyy_user') || '{}');
+  if (user.property_id) {
+    return [{
+      id: user.property_id,
+      name: 'My Property',
+      address: 'London, UK',
+      minPrice: 50,
+      maxPrice: 1000
+    }];
+  }
   // In production: GET /api/properties
   return properties;
 }
@@ -85,10 +130,94 @@ export async function getEarnings() {
 
 // ─── Pricing ────────────────────────────────────────────────────
 export async function fetchPricingRecommendation(propertyId, date) {
-  await delay(400);
-  // In production: POST /api/recommend
-  // Body: { property_id, date, property_features }
-  return getPricingRecommendation(propertyId, date);
+  try {
+    const user = JSON.parse(localStorage.getItem('wayzyy_user') || '{}');
+    const targetPropertyId = user.property_id || propertyId;
+
+    const res = await fetch('http://localhost:8000/api/pricing/recommend', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ property_id: targetPropertyId, date })
+    });
+    
+    if (!res.ok) {
+      throw new Error(`API error: ${res.status}`);
+    }
+    const data = await res.json();
+    
+    // Transform FastAPI data to match frontend's expected format
+    return {
+      recommendedPrice: data.recommended_price,
+      priceRange: data.price_range,
+      marketPressure: Math.round(data.market_pressure_score),
+      demandLevel: data.demand_level,
+      adjustmentPct: data.fusion_adjustment_pct || data.adjustment_pct,
+      comparables: data.comparables ? {
+        count: data.comparables.comparable_count || data.comparable_count,
+        radiusKm: data.comparables.message ? (data.comparables.message.match(/within ([\d.]+)km/)?.[1] || 1) : 1,
+        p25Price: data.comparables.p25_price ? data.comparables.p25_price.toFixed(2) : data.comparables.p25_price,
+        medianPrice: data.comparables.median_price,
+        p75Price: data.comparables.p75_price ? data.comparables.p75_price.toFixed(2) : data.comparables.p75_price,
+      } : null,
+      factors: data.factors
+        .filter(f => !f.toLowerCase().includes('fusion v2'))
+        .map(f => {
+          let label = f.split(':')[0];
+          let detail = f;
+          let impact = 'neutral';
+          let pct = null;
+          
+          const lowerF = f.toLowerCase();
+          
+          // Get the ACTUAL pricing adjustment (the last percentage in the string)
+          const allPcts = [...f.matchAll(/([+-]\d+(\.\d+)?)%/g)];
+          if (allPcts.length > 0) {
+            pct = parseFloat(allPcts[allPcts.length - 1][1]);
+          }
+          
+          if (pct > 0) impact = 'positive';
+          else if (pct < 0) impact = 'negative';
+
+          // Host-friendly rewrites
+          if (lowerF.includes('base price') || lowerF.includes('random forest')) {
+            label = 'Base property value';
+            detail = 'Calculated from your property attributes and location.';
+            pct = null; // Base price has no adjustment %
+            impact = 'neutral';
+          } else if (lowerF.includes('comp') || lowerF.includes('median')) {
+            label = 'Local competition';
+            detail = 'Based on prices of similar listings in your area.';
+          } else if (lowerF.includes('mps') || lowerF.includes('pressure')) {
+            label = 'Market demand';
+            detail = 'Traveler interest and availability for these dates.';
+          } else if (lowerF.includes('weekend')) {
+            label = 'Weekend premium';
+            detail = 'Higher typical demand for weekend stays.';
+          } else if (lowerF.includes('event')) {
+            label = 'Local event';
+            detail = 'Higher demand due to events in the area.';
+          } else if (lowerF.includes('seasonality')) {
+            label = 'Seasonality';
+            detail = 'Typical demand for this time of year.';
+          }
+          
+          return {
+            label,
+            detail,
+            impact,
+            pct
+          };
+        }),
+      seasonality: data.seasonality_context,
+      eventContext: data.event_active ? `${data.event_name} (${data.event_type})` : null
+    };
+  } catch (err) {
+    console.error("FastAPI backend failed, falling back to mock", err);
+    await delay(400);
+    return getPricingRecommendation(propertyId, date);
+  }
 }
 
 export async function fetchPricingCalendar(propertyId, startDate) {

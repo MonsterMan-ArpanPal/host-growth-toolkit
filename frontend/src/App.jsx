@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import Landing from './pages/Landing'
 import Auth from './pages/Auth'
+import PropertySetup from './pages/PropertySetup'
 import DashboardLayout from './components/layout/DashboardLayout'
 import Dashboard from './pages/Dashboard'
 import PricingPage from './pages/PricingPage'
@@ -14,6 +15,7 @@ function App() {
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Auth mode="login" />} />
       <Route path="/signup" element={<Auth mode="signup" />} />
+      <Route path="/setup" element={<PropertySetup />} />
       
       <Route path="/dashboard" element={<DashboardLayout />}>
         <Route index element={<Dashboard />} />
