@@ -48,7 +48,7 @@ export async function signup(userData) {
     throw new Error(err.detail || 'Signup failed');
   }
   const data = await res.json();
-  localStorage.setItem('wayzyy_user', JSON.stringify(data.user));
+  localStorage.setItem('wayzyy_user', JSON.stringify(data.user || {}));
   return data;
 }
 
@@ -82,16 +82,19 @@ export async function getHost() {
 export async function getProperties() {
   await delay(200);
   const user = JSON.parse(localStorage.getItem('wayzyy_user') || '{}');
-  if (user.property_id) {
+  
+  // If user signed up with a property name or has a property ID, show their property
+  if (user.property_id || user.property_name) {
     return [{
-      id: user.property_id,
-      name: 'My Property',
-      address: 'London, UK',
+      id: user.property_id || 'prop_custom_001',
+      name: user.property_name || 'My Property',
+      address: 'Added Property Location',
       minPrice: 50,
       maxPrice: 1000
     }];
   }
-  // In production: GET /api/properties
+  
+  // Default mock data if no custom user property exists
   return properties;
 }
 
@@ -196,8 +199,10 @@ export async function fetchPricingRecommendation(propertyId, date) {
             label = 'Weekend premium';
             detail = 'Higher typical demand for weekend stays.';
           } else if (lowerF.includes('event')) {
-            label = 'Local event';
-            detail = 'Higher demand due to events in the area.';
+            const nameMatch = f.match(/\(([^)]+)\)/);
+            const eventName = nameMatch ? nameMatch[1] : 'Local event';
+            label = eventName;
+            detail = `Higher demand expected due to ${eventName}.`;
           } else if (lowerF.includes('seasonality')) {
             label = 'Seasonality';
             detail = 'Typical demand for this time of year.';

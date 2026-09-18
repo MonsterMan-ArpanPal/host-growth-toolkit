@@ -393,13 +393,17 @@ export function getPricingRecommendation(propertyId, dateStr) {
  * Generate a pricing calendar (30 days from a start date).
  */
 export function generatePricingCalendar(propertyId, startDateStr) {
-  const start = new Date(startDateStr || '2026-09-17');
+  // Parse date string manually to avoid timezone issues
+  const parts = (startDateStr || '2026-09-17').split('-').map(Number);
+  const start = new Date(parts[0], parts[1] - 1, parts[2]);
   const days = [];
 
   for (let i = 0; i < 30; i++) {
-    const d = new Date(start);
-    d.setDate(start.getDate() + i);
-    const dateStr = d.toISOString().split('T')[0];
+    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const dateStr = `${yyyy}-${mm}-${dd}`;
     const rec = getPricingRecommendation(propertyId, dateStr);
 
     days.push({
