@@ -48,7 +48,7 @@ export async function signup(userData) {
     throw new Error(err.detail || 'Signup failed');
   }
   const data = await res.json();
-  localStorage.setItem('wayzyy_user', JSON.stringify(data.user));
+  localStorage.setItem('wayzyy_user', JSON.stringify(data.user || {}));
   return data;
 }
 
@@ -82,16 +82,19 @@ export async function getHost() {
 export async function getProperties() {
   await delay(200);
   const user = JSON.parse(localStorage.getItem('wayzyy_user') || '{}');
-  if (user.property_id) {
+  
+  // If user signed up with a property name or has a property ID, show their property
+  if (user.property_id || user.property_name) {
     return [{
-      id: user.property_id,
-      name: 'My Property',
-      address: 'London, UK',
+      id: user.property_id || 'prop_custom_001',
+      name: user.property_name || 'My Property',
+      address: 'Added Property Location',
       minPrice: 50,
       maxPrice: 1000
     }];
   }
-  // In production: GET /api/properties
+  
+  // Default mock data if no custom user property exists
   return properties;
 }
 

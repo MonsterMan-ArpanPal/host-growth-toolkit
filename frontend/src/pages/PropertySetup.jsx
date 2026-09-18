@@ -6,6 +6,7 @@ import './Auth.css';
 const PropertySetup = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
+    property_name: '',
     property_type: 'Apartment',
     room_type: 'Entire home/apt',
     accommodates: 2,
@@ -55,6 +56,12 @@ const PropertySetup = () => {
         latitude: coords.latitude,
         longitude: coords.longitude
       });
+
+      // Save property name so the dashboard uses it
+      const user = JSON.parse(localStorage.getItem('wayzyy_user') || '{}');
+      user.property_name = formData.property_name;
+      localStorage.setItem('wayzyy_user', JSON.stringify(user));
+
       navigate('/dashboard');
     } catch (err) {
       setError(err.message || 'Failed to setup property.');
@@ -74,6 +81,18 @@ const PropertySetup = () => {
         {error && <div className="auth-error">{error}</div>}
 
         <form onSubmit={handleSubmit} className="auth-form">
+          <div className="form-group">
+            <label>Property Name</label>
+            <input
+              type="text"
+              name="property_name"
+              value={formData.property_name}
+              onChange={handleChange}
+              placeholder="e.g. Sunset Villa, Oceanview Cottage"
+              required
+            />
+          </div>
+
           <div className="form-row">
             <div className="form-group">
               <label>Property Type</label>
