@@ -10,4 +10,5 @@ joblib
 scikit-learn
 opencv-python-headless
 openai
+python-dotenv
 
