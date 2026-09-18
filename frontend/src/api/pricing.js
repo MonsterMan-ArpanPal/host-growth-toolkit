@@ -199,8 +199,10 @@ export async function fetchPricingRecommendation(propertyId, date) {
             label = 'Weekend premium';
             detail = 'Higher typical demand for weekend stays.';
           } else if (lowerF.includes('event')) {
-            label = 'Local event';
-            detail = 'Higher demand due to events in the area.';
+            const nameMatch = f.match(/\(([^)]+)\)/);
+            const eventName = nameMatch ? nameMatch[1] : 'Local event';
+            label = eventName;
+            detail = `Higher demand expected due to ${eventName}.`;
           } else if (lowerF.includes('seasonality')) {
             label = 'Seasonality';
             detail = 'Typical demand for this time of year.';
