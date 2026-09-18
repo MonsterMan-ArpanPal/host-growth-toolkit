@@ -10,16 +10,40 @@ export default function BookingsPage() {
   const [activeModalBooking, setActiveModalBooking] = useState(null);
 
   useEffect(() => {
-    // Simulate API fetch delay
-    setTimeout(() => {
-      // Enhance mock data with random sources for the demo
-      const enhancedBookings = mockBookings.map((b, i) => ({
-        ...b,
-        source: i % 2 === 0 ? 'whatsapp' : 'web',
-      }));
-      setBookings(enhancedBookings);
-      setLoading(false);
-    }, 400);
+    // Fetch live bookings from backend
+    const fetchBookings = async () => {
+      try {
+        const res = await fetch('http://localhost:8000/api/bookings');
+        const data = await res.json();
+        
+        // Enhance mock data with random sources for the demo
+        const enhancedBookings = mockBookings.map((b, i) => ({
+          ...b,
+          source: i % 2 === 0 ? 'whatsapp' : 'web',
+        }));
+        
+        // Merge live bookings (from backend) with mock data
+        // Live bookings first
+        const allBookings = [...data.bookings, ...enhancedBookings];
+        setBookings(allBookings);
+      } catch (err) {
+        console.error("Failed to fetch bookings:", err);
+        // Fallback to mock only
+        const enhancedBookings = mockBookings.map((b, i) => ({
+          ...b,
+          source: i % 2 === 0 ? 'whatsapp' : 'web',
+        }));
+        setBookings(enhancedBookings);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchBookings();
+    
+    // Optional: Poll every 5 seconds for new WhatsApp messages
+    const interval = setInterval(fetchBookings, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleAccept = (id) => {

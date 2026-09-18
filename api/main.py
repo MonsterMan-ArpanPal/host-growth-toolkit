@@ -14,8 +14,10 @@ from pydantic import BaseModel
 import uvicorn
 
 from pricing.pricing_engine import PricingEngine, PricingRecommendation
+from whatsapp_router import router as whatsapp_router
 
 app = FastAPI(title="Wayzyy Pricing API")
+app.include_router(whatsapp_router)
 
 # Add CORS middleware
 app.add_middleware(
