@@ -36,9 +36,10 @@ Latest completed work and current state
 - PricingCalendar.jsx was changed.
 - PricingPage.css was inspected but intentionally NOT modified.
 - Build passed.
-- Remaining verification: visually test low/medium/high dates and confirm each maps to the intended color.
-- Verify that clicking a calendar date still loads the same date's real recommendation.
+- End-to-end verification completed: recommendation, comparables, 30-day calendar, and calendar date selection all load real backend data.
+- Demand mapping was verified: backend low maps to green, medium to neutral, and high to red in the calendar.
+- Calendar loading was made resilient to transient request failures: each pricing request retries up to three times, and calendar requests are limited to five concurrent calls.
 
 After this
 
-Once the calendar is behaving correctly, continue improving/testing the Dynamic Pricing feature before moving to the other Host Growth Toolkit features.
+Continue improving/testing the Dynamic Pricing feature before moving to the other Host Growth Toolkit features.
