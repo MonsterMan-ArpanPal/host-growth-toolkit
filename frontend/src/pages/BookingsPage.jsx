@@ -13,7 +13,7 @@ export default function BookingsPage() {
     // Fetch live bookings from backend
     const fetchBookings = async () => {
       try {
-        const res = await fetch('http://localhost:8000/api/bookings');
+        const res = await fetch('/api/bookings');
         const data = await res.json();
         
         // Enhance mock data with random sources for the demo

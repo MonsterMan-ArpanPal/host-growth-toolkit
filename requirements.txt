@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 # Tested Python 3.11 runtime for the API and serialized pricing model.
 fastapi==0.136.1
 uvicorn[standard]==0.47.0
@@ -26,4 +27,21 @@ pyiqa==0.1.16
 # Photo-quality checks used by the listing generator.
 opencv-python-headless==5.0.0.93
 pyiqa==0.1.16
+=======
+fastapi
+uvicorn[standard]
+python-multipart
+pyiqa
+requests
+pillow
+numpy
+pandas
+joblib
+scikit-learn
+opencv-python-headless
+openai
+python-dotenv
+twilio
+groq
+>>>>>>> Stashed changes
 
