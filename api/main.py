@@ -29,10 +29,12 @@ for _p in (SRC_DIR, _THIS_DIR):
         sys.path.insert(0, str(_p))
 
 import json
-import shutil
+import os
 import tempfile
+import time
 import uuid
 from datetime import datetime, timezone
+from threading import RLock
 from typing import Any, Dict, List, Optional
 
 from dotenv import load_dotenv
@@ -43,9 +45,10 @@ load_dotenv(PROJECT_ROOT / ".env")
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 import uvicorn
 from tinydb import TinyDB, Query
+from tinydb.storages import Storage
 
 from pricing.pricing_engine import PricingEngine, PricingRecommendation
 from whatsapp_router import router as whatsapp_router
@@ -94,48 +97,96 @@ def save_properties():
 # ---------------------------------------------------------------------------
 # NoSQL store (TinyDB — lightweight JSON document database)
 # ---------------------------------------------------------------------------
-LISTINGS_DB_PATH = PROJECT_ROOT / "data" / "demo" / "listings.json"
-LISTINGS_PHOTOS_DIR = PROJECT_ROOT / "data" / "demo" / "listings_photos"
-LISTINGS_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+# Keep mutable runtime data out of the OneDrive-synced source checkout. On
+# Windows this resolves to %LOCALAPPDATA%\Wayzyy; set WAYZYY_DATA_DIR to
+# override it in any environment.
+DEFAULT_RUNTIME_DATA_DIR = Path(
+    os.getenv("LOCALAPPDATA")
+    or os.getenv("XDG_STATE_HOME")
+    or (Path.home() / ".local" / "state")
+) / "Wayzyy"
+RUNTIME_DATA_DIR = Path(os.getenv("WAYZYY_DATA_DIR", str(DEFAULT_RUNTIME_DATA_DIR)))
+LISTINGS_DB_PATH = RUNTIME_DATA_DIR / "listings.json"
+LISTINGS_PHOTOS_DIR = RUNTIME_DATA_DIR / "listings_photos"
+RUNTIME_DATA_DIR.mkdir(parents=True, exist_ok=True)
 LISTINGS_PHOTOS_DIR.mkdir(parents=True, exist_ok=True)
+LISTINGS_STORE_LOCK = RLock()
+LISTINGS_WRITE_RETRY_ATTEMPTS = 5
+LISTINGS_WRITE_RETRY_DELAY_SECONDS = 0.1
 
 
-def _recover_listings_store(error: Exception) -> TinyDB:
-    """Preserve an unreadable TinyDB file and recreate an empty valid store."""
-    if LISTINGS_DB_PATH.exists() and LISTINGS_DB_PATH.stat().st_size:
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        backup_path = LISTINGS_DB_PATH.with_name(
-            f"{LISTINGS_DB_PATH.stem}.corrupt-{timestamp}{LISTINGS_DB_PATH.suffix}"
-        )
-        shutil.copy2(LISTINGS_DB_PATH, backup_path)
-        print(f"Warning: Recovered invalid listings store ({error}); backup: {backup_path.name}")
-    LISTINGS_DB_PATH.write_text('{"_default": {}}', encoding="utf-8")
-    return TinyDB(str(LISTINGS_DB_PATH))
+class AtomicJSONStorage(Storage):
+    """TinyDB storage that never exposes a partially written JSON file."""
+
+    def __init__(self, path: str):
+        self.path = Path(path)
+
+    def read(self):
+        with LISTINGS_STORE_LOCK:
+            if not self.path.exists():
+                return None
+            contents = self.path.read_text(encoding="utf-8")
+            if not contents.strip():
+                raise json.JSONDecodeError("Listings store is empty", contents, 0)
+            return json.loads(contents)
+
+    def write(self, data):
+        serialized = json.dumps(data)
+        temp_path: Optional[Path] = None
+        with LISTINGS_STORE_LOCK:
+            try:
+                with tempfile.NamedTemporaryFile(
+                    mode="w",
+                    encoding="utf-8",
+                    dir=self.path.parent,
+                    prefix=f".{self.path.stem}.",
+                    suffix=".tmp",
+                    delete=False,
+                ) as temp_file:
+                    temp_file.write(serialized)
+                    temp_file.flush()
+                    os.fsync(temp_file.fileno())
+                    temp_path = Path(temp_file.name)
+                for attempt in range(1, LISTINGS_WRITE_RETRY_ATTEMPTS + 1):
+                    try:
+                        os.replace(temp_path, self.path)
+                        temp_path = None
+                        break
+                    except PermissionError:
+                        if attempt == LISTINGS_WRITE_RETRY_ATTEMPTS:
+                            raise
+                        time.sleep(LISTINGS_WRITE_RETRY_DELAY_SECONDS * attempt)
+            finally:
+                if temp_path and temp_path.exists():
+                    temp_path.unlink()
+
+    def close(self):
+        pass
 
 
-def _open_listings_store() -> TinyDB:
-    """Open TinyDB only after confirming its JSON storage is readable."""
-    try:
-        if not LISTINGS_DB_PATH.exists() or not LISTINGS_DB_PATH.read_text(encoding="utf-8").strip():
-            raise json.JSONDecodeError("Empty listings store", "", 0)
-        with LISTINGS_DB_PATH.open("r", encoding="utf-8") as store_file:
-            json.load(store_file)
-    except (OSError, json.JSONDecodeError) as error:
-        return _recover_listings_store(error)
-    return TinyDB(str(LISTINGS_DB_PATH))
+def initialize_empty_listings_store():
+    """Create valid TinyDB JSON only for a missing or truly zero-byte store."""
+    with LISTINGS_STORE_LOCK:
+        if LISTINGS_DB_PATH.exists() and LISTINGS_DB_PATH.stat().st_size > 0:
+            return
+        AtomicJSONStorage(str(LISTINGS_DB_PATH)).write({"_default": {}})
 
 
-listings_db = _open_listings_store()
+initialize_empty_listings_store()
+listings_db = TinyDB(str(LISTINGS_DB_PATH), storage=AtomicJSONStorage)
 
 
 def _with_listings_store(operation):
-    """Retry one TinyDB operation if the JSON file becomes unreadable at runtime."""
-    global listings_db
-    try:
-        return operation()
-    except json.JSONDecodeError as error:
-        listings_db = _recover_listings_store(error)
-        return operation()
+    """Serialize TinyDB access and preserve data if the store is unreadable."""
+    with LISTINGS_STORE_LOCK:
+        try:
+            return operation()
+        except (OSError, json.JSONDecodeError) as error:
+            print(f"Listings store unavailable: {type(error).__name__}: {error}")
+            raise HTTPException(
+                status_code=503,
+                detail="Listings are temporarily unavailable; no data was changed.",
+            ) from error
 
 
 def listing_by_id(prop_id: str):
@@ -324,6 +375,15 @@ def load_engine():
 class RecommendRequest(BaseModel):
     property_id: str
     date: str
+
+    @field_validator("date")
+    @classmethod
+    def validate_date(cls, value: str) -> str:
+        try:
+            datetime.strptime(value, "%Y-%m-%d")
+        except (TypeError, ValueError) as error:
+            raise ValueError("date must be a real date in YYYY-MM-DD format") from error
+        return value
 
 
 class SignupRequest(BaseModel):

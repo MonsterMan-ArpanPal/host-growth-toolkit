@@ -150,7 +150,9 @@ class ComparableFinder:
         t_rating = target.get('review_scores_rating')
         t_amenities_raw = target.get('amenities')
         t_num_amenities = np.nan
-        if pd.notna(t_amenities_raw):
+        if isinstance(t_amenities_raw, (list, np.ndarray)):
+            t_num_amenities = len(t_amenities_raw)
+        elif t_amenities_raw is not None and pd.notna(t_amenities_raw):
             t_num_amenities = str(t_amenities_raw).count(',') + 1
 
         # Matching levels (progressively relaxed)
