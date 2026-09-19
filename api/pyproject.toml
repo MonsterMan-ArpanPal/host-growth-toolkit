@@ -1,18 +1,34 @@
 [project]
 name = "api"
 version = "0.1.0"
-description = "Add your description here"
+description = "Wayzyy unified backend — pricing, auto-listing generator, auth, WhatsApp."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.141.1",
     "groq>=1.7.0",
-    "joblib>=1.4",
-    "numpy>=1.26,<2",
-    "pandas>=2.2,<3",
+    "joblib>=1.6.0",
+    "numpy>=1.26",
+    "pandas>=2.2",
     "python-multipart>=0.0.32",
-    # Must match the version embedded in best_pricing_model_v1_2.pkl.
-    "scikit-learn==1.7.2",
+    # Pinned <1.8: models/best_pricing_model_v1_2.pkl was fitted by sklearn
+    # <1.8 (sklearn 1.9 renamed SimpleImputer._fit_dtype -> _fill_dtype).
+    "scikit-learn>=1.4,<1.8",
     "twilio>=9.11.1",
     "uvicorn>=0.53.0",
+    "requests>=2.32",
+    "python-dotenv>=1.0",
+    "tinydb>=4.8",
+]
+
+# Local photo quality-checking (PyIQA + OpenCV + Pillow).
+# These are HEAVY (PyIQA pulls in PyTorch) and entirely optional —
+# without them the pipeline skips blur/quality flagging but still
+# runs the vision + writer LLM steps. Install with:
+#   uv sync --extra image-qc
+[project.optional-dependencies]
+image-qc = [
+    "pyiqa>=0.1.3",
+    "opencv-python-headless>=4.9",
+    "pillow>=10.3",
 ]

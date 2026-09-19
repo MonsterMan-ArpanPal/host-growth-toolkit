@@ -1,14 +1,29 @@
-fastapi
-uvicorn[standard]
-python-multipart
-pyiqa
-requests
-pillow
-numpy
-pandas
-joblib
+# Tested Python 3.11 runtime for the API and serialized pricing model.
+fastapi==0.136.1
+uvicorn[standard]==0.47.0
+pydantic==2.12.4
+python-multipart==0.0.32
+
+# Pricing engine and model artifact dependencies.
+numpy==2.3.5
+pandas==2.3.3
+joblib==1.5.2
+# The committed model was serialized with this exact scikit-learn version.
 scikit-learn==1.7.2
-opencv-python-headless
-openai
-python-dotenv
+
+# Listing, WhatsApp, and configuration runtime dependencies.
+requests==2.32.5
+Pillow==12.3.0
+python-dotenv==1.1.0
+twilio==9.11.1
+groq==1.7.0
+tinydb==4.8.2
+
+# Optional listing photo-quality checks.
+opencv-python-headless==5.0.0.93
+pyiqa==0.1.16
+
+# Photo-quality checks used by the listing generator.
+opencv-python-headless==5.0.0.93
+pyiqa==0.1.16
 

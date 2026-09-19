@@ -261,5 +261,20 @@ _default_finder: Optional[ComparableFinder] = None
 def get_comparables(target: Dict[str, Any], target_id: Optional[int] = None) -> Dict[str, Any]:
     global _default_finder
     if _default_finder is None:
-        _default_finder = ComparableFinder()
+        try:
+            _default_finder = ComparableFinder()
+        except FileNotFoundError as e:
+            # The London listings dataset is optional — degrade to "no
+            # comparables" rather than failing the whole recommendation.
+            return {
+                "comparable_count": 0,
+                "median_price": None,
+                "p25_price": None,
+                "p75_price": None,
+                "mean_price": None,
+                "message": f"Comparables dataset unavailable: {e}",
+                "initial_candidates": 0,
+                "final_candidates": 0,
+                "quality_relaxed": False,
+            }
     return _default_finder.find_comparables(target, target_id)

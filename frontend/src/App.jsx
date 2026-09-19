@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard'
 import PricingPage from './pages/PricingPage'
 import ListingsPage from './pages/ListingsPage'
 import NewListingPage from './pages/NewListingPage'
+import ListingDetailPage from './pages/ListingDetailPage'
 import BookingsPage from './pages/BookingsPage'
 import CalendarPage from './pages/CalendarPage'
 
@@ -24,6 +25,7 @@ function App() {
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="listings" element={<ListingsPage />} />
         <Route path="listings/new" element={<NewListingPage />} />
+        <Route path="listings/:listingId" element={<ListingDetailPage />} />
         <Route path="bookings" element={<BookingsPage />} />
       </Route>
     </Routes>

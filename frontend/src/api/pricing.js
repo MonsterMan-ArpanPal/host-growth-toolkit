@@ -80,9 +80,20 @@ export async function getHost() {
 
 // ─── Properties ─────────────────────────────────────────────────
 export async function getProperties() {
+  // Always prefer the backend list: it contains the demo properties plus
+  // every listing saved in the database, so pricing can price any of them.
+  try {
+    const res = await fetch('http://localhost:8000/api/properties');
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) return data;
+    }
+  } catch (err) {
+    console.warn('Backend properties unavailable, using fallback', err);
+  }
+
+  // Offline fallback: the host's own property, then mock data.
   const user = JSON.parse(localStorage.getItem('wayzyy_user') || '{}');
-  
-  // If user signed up with a property name or has a property ID, show their property
   if (user.property_id || user.property_name) {
     return [{
       id: user.property_id || 'prop_custom_001',
@@ -92,19 +103,7 @@ export async function getProperties() {
       maxPrice: 1000
     }];
   }
-  
-  // Fetch real properties from backend
-  try {
-    const res = await fetch('http://localhost:8000/api/properties');
-    if (res.ok) {
-      const data = await res.json();
-      if (data.length > 0) return data;
-    }
-  } catch (err) {
-    console.warn('Backend properties unavailable, using mock data', err);
-  }
-  
-  // Fallback to mock data if backend is not reachable
+
   return properties;
 }
 
@@ -207,7 +206,9 @@ async function mapWithConcurrency(items, concurrency, mapper) {
 export async function fetchPricingRecommendation(propertyId, date) {
   try {
     const user = JSON.parse(localStorage.getItem('wayzyy_user') || '{}');
-    const targetPropertyId = user.property_id || propertyId;
+    // The explicitly selected property (from the DB-backed selector) wins;
+    // fall back to the host's active property only when none is given.
+    const targetPropertyId = propertyId || user.property_id;
     const data = await requestPricingRecommendation(targetPropertyId, date);
     
     // Transform FastAPI data to match frontend's expected format

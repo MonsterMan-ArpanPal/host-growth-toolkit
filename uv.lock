@@ -254,24 +254,39 @@ dependencies = [
     { name = "joblib" },
     { name = "numpy" },
     { name = "pandas" },
+    { name = "python-dotenv" },
     { name = "python-multipart" },
+    { name = "requests" },
     { name = "scikit-learn" },
+    { name = "tinydb" },
     { name = "twilio" },
     { name = "uvicorn" },
+]
+
+[package.optional-dependencies]
+image-qc = [
+    { name = "opencv-python-headless" },
+    { name = "pillow" },
+    { name = "pyiqa" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.141.1" },
     { name = "groq", specifier = ">=1.7.0" },
-    { name = "joblib", specifier = ">=1.4" },
-    { name = "numpy", specifier = ">=1.26,<2" },
-    { name = "pandas", specifier = ">=2.2,<3" },
+    { name = "joblib", specifier = ">=1.6.0" },
+    { name = "numpy", specifier = ">=1.26" },
+    { name = "opencv-python-headless", marker = "extra == 'image-qc'", specifier = ">=4.9" },
+    { name = "pandas", specifier = ">=2.2" },
+    { name = "pillow", marker = "extra == 'image-qc'", specifier = ">=10.3" },
+    { name = "pyiqa", marker = "extra == 'image-qc'", specifier = ">=0.1.3" },
+    { name = "python-dotenv", specifier = ">=1.0" },
     { name = "python-multipart", specifier = ">=0.0.32" },
-    { name = "scikit-learn", specifier = "==1.7.2" },
+    { name = "scikit-learn", specifier = ">=1.9.1" },
     { name = "twilio", specifier = ">=9.11.1" },
     { name = "uvicorn", specifier = ">=0.53.0" },
 ]
+provides-extras = ["image-qc"]
 
 [[package]]
 name = "attrs"
@@ -3020,8 +3035,11 @@ version = "1.7.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "joblib" },
-    { name = "numpy" },
-    { name = "scipy" },
+    { name = "narwhals" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "scipy", version = "1.18.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "threadpoolctl" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/98/c2/a7855e41c9d285dfe86dc50b250978105dce513d6e459ea66a6aeb0e1e0c/scikit_learn-1.7.2.tar.gz", hash = "sha256:20e9e49ecd130598f1ca38a1d85090e1a600147b9c02fa6f15d69cb53d968fda", size = 7193136, upload-time = "2025-09-09T08:21:29.075Z" }
@@ -3300,6 +3318,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/cf/72/58b8363e22508418d5fac897ac68e2c33f01f84d9d471edc38cbb6523dc6/timm-1.0.29.tar.gz", hash = "sha256:1af8d12bb7e15c5f96e98d60b7b8319cd7f31730778bf1af58e912a7ce171576", size = 2497559, upload-time = "2026-08-28T15:07:31.007Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/5e/b7/19267ec60740ef1899d265272bff3623f19fe7f7bf1022fb098766db2134/timm-1.0.29-py3-none-any.whl", hash = "sha256:4266486e355c9beb9432e689de580d09e2efe7fa92a9a79e76c03e7763eac724", size = 2633555, upload-time = "2026-08-28T15:07:29.348Z" },
+]
+
+[[package]]
+name = "tinydb"
+version = "4.9.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/01/e9/d30dd8b1b88a75ec3e464eb81feee514ccf97f50bd306d198959e6733210/tinydb-4.9.0.tar.gz", hash = "sha256:6928b1fa785186bda7952a0ba05aaeedc883ede565ca9c7d608de44e5e75de70", size = 31987, upload-time = "2026-08-06T15:03:44.78Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/54/ef/321cb77b49bc26f36ed1c85d55cd8e80f8f81e5e183b769abf67386c257a/tinydb-4.9.0-py3-none-any.whl", hash = "sha256:111f1f680978a1b7c534d698dd1d76739ff31c74c27fd26a111140b51d8b35d6", size = 25731, upload-time = "2026-08-06T15:03:43.582Z" },
 ]
 
 [[package]]
@@ -3585,7 +3612,7 @@ wheels = [
 
 [[package]]
 name = "virtualenv"
-version = "21.7.15"
+version = "21.7.16"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "distlib" },
@@ -3593,9 +3620,9 @@ dependencies = [
     { name = "platformdirs" },
     { name = "python-discovery" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/cb/8f/d4da8965384182e79d005cf165097c194e15df7b9f13c2dc09d7fa3d4b97/virtualenv-21.7.15.tar.gz", hash = "sha256:072c16d3d1d796cb6a851145d2eae314f8434bd625a55f18b8b72b29890cc366", size = 5361912, upload-time = "2026-09-18T23:16:21.759Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/45/2b/f7ec483cb56fc84cab8676971b171156111cd125d069ca02fdaf0239f3e5/virtualenv-21.7.16.tar.gz", hash = "sha256:d3fcf6954a07121c2b61efcb96419e2f40b3718d558998f13a7314e32cc42723", size = 5363081, upload-time = "2026-09-19T06:59:08.339Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a1/20/91d982deaa4e3aefd4bfd755b1464259cbcd191d8d1c56a9cfe24d421ed6/virtualenv-21.7.15-py3-none-any.whl", hash = "sha256:b7fa004650941c5f4b8035c981673ba2fc88189543c86db05ace77878804202d", size = 5329439, upload-time = "2026-09-18T23:16:19.417Z" },
+    { url = "https://files.pythonhosted.org/packages/c7/46/a02c0bb29e6102616aa91d68a5e3f055393d92353d94b52ad6c51d540c20/virtualenv-21.7.16-py3-none-any.whl", hash = "sha256:752fd5d5352502fbd794422983eed65a249fc6f4685c5e2122fd6052e6477a11", size = 5330278, upload-time = "2026-09-19T06:59:06.096Z" },
 ]
 
 [[package]]
@@ -3710,18 +3737,25 @@ dependencies = [
     { name = "fastapi" },
     { name = "groq" },
     { name = "joblib" },
-    { name = "numpy" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "opencv-python-headless" },
     { name = "pandas" },
-    { name = "pillow" },
     { name = "pydantic" },
-    { name = "pyiqa" },
     { name = "python-dotenv" },
     { name = "python-multipart" },
     { name = "requests" },
     { name = "scikit-learn" },
+    { name = "tinydb" },
     { name = "twilio" },
     { name = "uvicorn", extra = ["standard"] },
+]
+
+[package.optional-dependencies]
+image-qc = [
+    { name = "opencv-python-headless" },
+    { name = "pillow" },
+    { name = "pyiqa" },
 ]
 
 [package.dev-dependencies]
@@ -3736,18 +3770,19 @@ requires-dist = [
     { name = "groq", specifier = ">=0.9" },
     { name = "joblib", specifier = ">=1.4" },
     { name = "numpy", specifier = ">=1.26" },
-    { name = "opencv-python-headless", specifier = ">=4.9" },
+    { name = "opencv-python-headless", marker = "extra == 'image-qc'", specifier = ">=4.9" },
     { name = "pandas", specifier = ">=2.2" },
-    { name = "pillow", specifier = ">=10.3" },
+    { name = "pillow", marker = "extra == 'image-qc'", specifier = ">=10.3" },
     { name = "pydantic", specifier = ">=2.7" },
-    { name = "pyiqa", specifier = ">=0.1.3" },
+    { name = "pyiqa", marker = "extra == 'image-qc'", specifier = ">=0.1.3" },
     { name = "python-dotenv", specifier = ">=1.0" },
     { name = "python-multipart", specifier = ">=0.0.9" },
     { name = "requests", specifier = ">=2.32" },
-    { name = "scikit-learn", specifier = "==1.7.2" },
+    { name = "scikit-learn", specifier = ">=1.4,<2" },
     { name = "twilio", specifier = ">=9.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.30" },
 ]
+provides-extras = ["image-qc"]
 
 [package.metadata.requires-dev]
 dev = [
