@@ -14,7 +14,6 @@ import {
   bookings,
   earnings,
   getPricingRecommendation as getDemoPricingRecommendation,
-  generatePricingCalendar as generateDemoPricingCalendar,
   getPricingOpportunities,
 } from '../data/mockData';
 
@@ -80,20 +79,22 @@ export async function getHost() {
 
 // ─── Properties ─────────────────────────────────────────────────
 export async function getProperties() {
-  // Always prefer the backend list: it contains the demo properties plus
-  // every listing saved in the database, so pricing can price any of them.
+  const user = JSON.parse(localStorage.getItem('wayzyy_user') || '{}');
+  const query = user.email ? `?email=${encodeURIComponent(user.email)}` : '';
+  // Always prefer the backend list for the signed-in host.
   try {
-    const res = await fetch('http://localhost:8000/api/properties');
+    const res = await fetch(`http://localhost:8000/api/properties${query}`);
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) return data;
+      // An empty successful response means this account has no properties;
+      // return it so the Pricing page can render its dedicated empty state.
+      if (Array.isArray(data)) return data;
     }
   } catch (err) {
     console.warn('Backend properties unavailable, using fallback', err);
   }
 
   // Offline fallback: the host's own property, then mock data.
-  const user = JSON.parse(localStorage.getItem('wayzyy_user') || '{}');
   if (user.property_id || user.property_name) {
     return [{
       id: user.property_id || 'prop_custom_001',
@@ -145,13 +146,18 @@ const PRICING_API_URL = 'http://localhost:8000/api/pricing/recommend';
 const PRICING_RETRY_ATTEMPTS = 3;
 const PRICING_RETRY_DELAY_MS = 300;
 const CALENDAR_REQUEST_CONCURRENCY = 5;
-let pricingApiUnavailable = false;
 
 const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+function isValidPricingDate(date) {
+  if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
+  const parsed = new Date(`${date}T00:00:00Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === date;
+}
+
 async function requestPricingRecommendation(propertyId, date) {
-  if (pricingApiUnavailable) {
-    throw new TypeError('Pricing API is unavailable');
+  if (!isValidPricingDate(date)) {
+    throw new Error('Choose a valid date before requesting pricing.');
   }
 
   let lastError;
@@ -175,7 +181,6 @@ async function requestPricingRecommendation(propertyId, date) {
     } catch (error) {
       lastError = error;
       if (attempt === PRICING_RETRY_ATTEMPTS) {
-        if (error instanceof TypeError) pricingApiUnavailable = true;
         throw error;
       }
     }
@@ -291,10 +296,6 @@ export async function fetchPricingRecommendation(propertyId, date) {
 }
 
 export async function fetchPricingCalendar(propertyId, startDate) {
-  if (pricingApiUnavailable) {
-    return generateDemoPricingCalendar(propertyId, startDate);
-  }
-
   // Build 30 dates starting from startDate (or today)
   const parts = (startDate || new Date().toISOString().split('T')[0]).split('-').map(Number);
   const start = new Date(parts[0], parts[1] - 1, parts[2]);

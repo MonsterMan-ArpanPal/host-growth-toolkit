@@ -89,7 +89,9 @@ export async function saveListing(files, manualData, listingResult) {
  * @returns {Promise<Array>} Array of listing documents (id, name, specs, photos, ...)
  */
 export async function getListings() {
-  const response = await fetch('/api/listings');
+  const user = JSON.parse(localStorage.getItem('wayzyy_user') || '{}');
+  const query = user.email ? `?email=${encodeURIComponent(user.email)}` : '';
+  const response = await fetch(`/api/listings${query}`);
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
     throw new Error(error.detail || `Fetch listings failed (${response.status})`);
@@ -104,7 +106,9 @@ export async function getListings() {
  * @returns {Promise<Object>} The full listing document
  */
 export async function getListing(listingId) {
-  const response = await fetch(`/api/listings/${listingId}`);
+  const user = JSON.parse(localStorage.getItem('wayzyy_user') || '{}');
+  const query = user.email ? `?email=${encodeURIComponent(user.email)}` : '';
+  const response = await fetch(`/api/listings/${listingId}${query}`);
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
     throw new Error(error.detail || `Fetch listing failed (${response.status})`);

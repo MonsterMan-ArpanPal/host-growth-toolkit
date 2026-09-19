@@ -29,9 +29,12 @@ for _p in (SRC_DIR, _THIS_DIR):
         sys.path.insert(0, str(_p))
 
 import json
+import os
 import tempfile
+import time
 import uuid
 from datetime import datetime, timezone
+from threading import RLock
 from typing import Any, Dict, List, Optional
 
 from dotenv import load_dotenv
@@ -42,9 +45,10 @@ load_dotenv(PROJECT_ROOT / ".env")
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 import uvicorn
 from tinydb import TinyDB, Query
+from tinydb.storages import Storage
 
 from pricing.pricing_engine import PricingEngine, PricingRecommendation
 from whatsapp_router import router as whatsapp_router
@@ -93,12 +97,108 @@ def save_properties():
 # ---------------------------------------------------------------------------
 # NoSQL store (TinyDB — lightweight JSON document database)
 # ---------------------------------------------------------------------------
-LISTINGS_DB_PATH = PROJECT_ROOT / "data" / "demo" / "listings.json"
-LISTINGS_PHOTOS_DIR = PROJECT_ROOT / "data" / "demo" / "listings_photos"
-LISTINGS_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+# Keep mutable runtime data out of the OneDrive-synced source checkout. On
+# Windows this resolves to %LOCALAPPDATA%\Wayzyy; set WAYZYY_DATA_DIR to
+# override it in any environment.
+DEFAULT_RUNTIME_DATA_DIR = Path(
+    os.getenv("LOCALAPPDATA")
+    or os.getenv("XDG_STATE_HOME")
+    or (Path.home() / ".local" / "state")
+) / "Wayzyy"
+RUNTIME_DATA_DIR = Path(os.getenv("WAYZYY_DATA_DIR", str(DEFAULT_RUNTIME_DATA_DIR)))
+LISTINGS_DB_PATH = RUNTIME_DATA_DIR / "listings.json"
+LISTINGS_PHOTOS_DIR = RUNTIME_DATA_DIR / "listings_photos"
+RUNTIME_DATA_DIR.mkdir(parents=True, exist_ok=True)
 LISTINGS_PHOTOS_DIR.mkdir(parents=True, exist_ok=True)
+LISTINGS_STORE_LOCK = RLock()
+LISTINGS_WRITE_RETRY_ATTEMPTS = 5
+LISTINGS_WRITE_RETRY_DELAY_SECONDS = 0.1
 
-listings_db = TinyDB(str(LISTINGS_DB_PATH))
+
+class AtomicJSONStorage(Storage):
+    """TinyDB storage that never exposes a partially written JSON file."""
+
+    def __init__(self, path: str):
+        self.path = Path(path)
+
+    def read(self):
+        with LISTINGS_STORE_LOCK:
+            if not self.path.exists():
+                return None
+            contents = self.path.read_text(encoding="utf-8")
+            if not contents.strip():
+                raise json.JSONDecodeError("Listings store is empty", contents, 0)
+            return json.loads(contents)
+
+    def write(self, data):
+        serialized = json.dumps(data)
+        temp_path: Optional[Path] = None
+        with LISTINGS_STORE_LOCK:
+            try:
+                with tempfile.NamedTemporaryFile(
+                    mode="w",
+                    encoding="utf-8",
+                    dir=self.path.parent,
+                    prefix=f".{self.path.stem}.",
+                    suffix=".tmp",
+                    delete=False,
+                ) as temp_file:
+                    temp_file.write(serialized)
+                    temp_file.flush()
+                    os.fsync(temp_file.fileno())
+                    temp_path = Path(temp_file.name)
+                for attempt in range(1, LISTINGS_WRITE_RETRY_ATTEMPTS + 1):
+                    try:
+                        os.replace(temp_path, self.path)
+                        temp_path = None
+                        break
+                    except PermissionError:
+                        if attempt == LISTINGS_WRITE_RETRY_ATTEMPTS:
+                            raise
+                        time.sleep(LISTINGS_WRITE_RETRY_DELAY_SECONDS * attempt)
+            finally:
+                if temp_path and temp_path.exists():
+                    temp_path.unlink()
+
+    def close(self):
+        pass
+
+
+def initialize_empty_listings_store():
+    """Create valid TinyDB JSON only for a missing or truly zero-byte store."""
+    with LISTINGS_STORE_LOCK:
+        if LISTINGS_DB_PATH.exists() and LISTINGS_DB_PATH.stat().st_size > 0:
+            return
+        AtomicJSONStorage(str(LISTINGS_DB_PATH)).write({"_default": {}})
+
+
+initialize_empty_listings_store()
+listings_db = TinyDB(str(LISTINGS_DB_PATH), storage=AtomicJSONStorage)
+
+
+def _with_listings_store(operation):
+    """Serialize TinyDB access and preserve data if the store is unreadable."""
+    with LISTINGS_STORE_LOCK:
+        try:
+            return operation()
+        except (OSError, json.JSONDecodeError) as error:
+            print(f"Listings store unavailable: {type(error).__name__}: {error}")
+            raise HTTPException(
+                status_code=503,
+                detail="Listings are temporarily unavailable; no data was changed.",
+            ) from error
+
+
+def listing_by_id(prop_id: str):
+    return _with_listings_store(lambda: listings_db.get(Query().id == prop_id))
+
+
+def all_listings():
+    return _with_listings_store(listings_db.all)
+
+
+def save_listing(doc: Dict[str, Any]):
+    return _with_listings_store(lambda: listings_db.insert(doc))
 
 # Approximate London borough centroid coordinates (lat, lon), used so the
 # pricing model/comparables can geolocate listings saved from the UI.
@@ -276,6 +376,15 @@ class RecommendRequest(BaseModel):
     property_id: str
     date: str
 
+    @field_validator("date")
+    @classmethod
+    def validate_date(cls, value: str) -> str:
+        try:
+            datetime.strptime(value, "%Y-%m-%d")
+        except (TypeError, ValueError) as error:
+            raise ValueError("date must be a real date in YYYY-MM-DD format") from error
+        return value
+
 
 class SignupRequest(BaseModel):
     first_name: str
@@ -336,25 +445,35 @@ def login(req: LoginRequest):
     user = USERS.get(req.email)
     if not user or user["password"] != req.password:
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    return {"token": "fake-jwt-token", "user": user}
+
+    # Older accounts may have listings saved in TinyDB without an active
+    # property_id in users.json. Treat either record type as an existing host.
+    has_existing_property = bool(user.get("property_id")) or any(
+        prop.get("owner_email") == req.email for prop in DEMO_PROPERTIES.values()
+    ) or any(doc.get("owner_email") == req.email for doc in all_listings())
+    return {
+        "token": "fake-jwt-token",
+        "user": {**user, "has_existing_property": has_existing_property},
+    }
 
 
 # ---------------------------------------------------------------------------
 # Properties
 # ---------------------------------------------------------------------------
 @app.get("/api/properties")
-def list_properties(include_demo: bool = False):
+def list_properties(email: Optional[str] = None, include_demo: bool = False):
     """
     Return the host's own properties for the pricing selector.
 
-    Seeded demo properties and anonymous onboarding rows (those with no
-    explicit name) are hidden so the selector only shows the host's own
-    listings. Pass ?include_demo=true to include them (dev/demo only).
+    Only records owned by ``email`` are returned. Seeded demo properties can
+    be included explicitly with ?include_demo=true for development.
     """
     result = []
     for prop_id, prop in DEMO_PROPERTIES.items():
-        named = bool(prop.get("name") or prop.get("owner_email"))
-        if not named and not include_demo:
+        is_demo = not prop.get("owner_email")
+        if not include_demo and prop.get("owner_email") != email:
+            continue
+        if include_demo and not is_demo and prop.get("owner_email") != email:
             continue
         result.append({
             "id": prop_id,
@@ -364,7 +483,9 @@ def list_properties(include_demo: bool = False):
             "maxPrice": 1000,
         })
 
-    for doc in listings_db.all():
+    for doc in all_listings():
+        if doc.get("owner_email") != email:
+            continue
         result.append({
             "id": doc.get("id"),
             "name": doc.get("name") or doc.get("listing_title") or "New Listing",
@@ -436,7 +557,7 @@ def recommend_price(req: RecommendRequest):
 
     # Resolve property features: saved listings (NoSQL store) first,
     # then the demo properties JSON.
-    doc = listings_db.get(Query().id == prop_id)
+    doc = listing_by_id(prop_id)
     if doc is not None:
         prop_features = dict(doc)
         prop_features.pop("_id", None)
@@ -597,15 +718,22 @@ async def save_generated_listing(
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
 
-    listings_db.insert(prop_data)
+    save_listing(prop_data)
+
+    # Keep the account's active property in sync so future logins enter the
+    # dashboard rather than being treated as a first-time host.
+    owner_email = prop_data.get("owner_email")
+    if owner_email in USERS:
+        USERS[owner_email]["property_id"] = prop_id
+        save_users()
 
     return {"success": True, "property_id": prop_id}
 
 
 @app.get("/api/listings")
-def list_saved_listings():
-    """Return all listings saved in the NoSQL store."""
-    docs = listings_db.all()
+def list_saved_listings(email: Optional[str] = None):
+    """Return only listings owned by the requested host account."""
+    docs = [doc for doc in all_listings() if doc.get("owner_email") == email]
     result = []
     for doc in docs:
         result.append({
@@ -627,10 +755,10 @@ def list_saved_listings():
 
 
 @app.get("/api/listings/{listing_id}")
-def get_saved_listing(listing_id: str):
-    """Return the full document for a single saved listing (detail view)."""
-    doc = listings_db.get(Query().id == listing_id)
-    if doc is None:
+def get_saved_listing(listing_id: str, email: Optional[str] = None):
+    """Return a saved listing only when it belongs to the requested host."""
+    doc = listing_by_id(listing_id)
+    if doc is None or doc.get("owner_email") != email:
         raise HTTPException(status_code=404, detail="Listing not found")
     doc.pop("_id", None)  # drop TinyDB internal key
     return {"listing": doc}

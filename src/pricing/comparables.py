@@ -63,11 +63,16 @@ class ComparableFinder:
             df = pd.read_csv(self.listings_path, compression='gzip', low_memory=False)
             df = df[[c for c in usecols if c in df.columns]]
 
-        # Clean price
-        if 'price' in df.columns and df['price'].dtype == 'O':
-            df['price'] = df['price'].str.replace('$', '', regex=False)\
-                                     .str.replace(',', '', regex=False)\
-                                     .astype(float)
+        # Clean price regardless of pandas' string dtype (``object`` in
+        # pandas 2, ``str`` in pandas 3). Invalid values become NaN and are
+        # excluded by the numeric price filter below.
+        if 'price' in df.columns:
+            df['price'] = pd.to_numeric(
+                df['price'].astype(str)
+                .str.replace('$', '', regex=False)
+                .str.replace(',', '', regex=False),
+                errors='coerce',
+            )
                                      
         if 'amenities' in df.columns:
             df['num_amenities'] = df['amenities'].astype(str).str.count(',') + 1
@@ -145,7 +150,9 @@ class ComparableFinder:
         t_rating = target.get('review_scores_rating')
         t_amenities_raw = target.get('amenities')
         t_num_amenities = np.nan
-        if pd.notna(t_amenities_raw):
+        if isinstance(t_amenities_raw, (list, np.ndarray)):
+            t_num_amenities = len(t_amenities_raw)
+        elif t_amenities_raw is not None and pd.notna(t_amenities_raw):
             t_num_amenities = str(t_amenities_raw).count(',') + 1
 
         # Matching levels (progressively relaxed)
