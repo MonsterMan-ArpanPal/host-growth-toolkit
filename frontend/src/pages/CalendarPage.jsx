@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Check, 
   AlertTriangle, 
@@ -36,6 +36,9 @@ export default function CalendarPage() {
   const [calendarDays, setCalendarDays] = useState([]);
   const [loading, setLoading] = useState(true);
   const [bookingsList, setBookingsList] = useState(initialBookings);
+  // Ref keeps manual holds across a property/month rebuild without causing a
+  // new loading cycle every time the host clicks a date.
+  const manuallyBlockedDatesRef = useRef(new Set());
 
   // Conflict state
   const [activeConflict, setActiveConflict] = useState(null);
@@ -124,8 +127,7 @@ export default function CalendarPage() {
             status = matchedBookings[0].status === 'confirmed' ? 'booked' : 'pending';
           }
           dayBookings = matchedBookings;
-        } else if (i === 10 && selectedPropertyId === 'prop_002') {
-          // Demo blocked date for second property
+        } else if (manuallyBlockedDatesRef.current.has(`${selectedPropertyId}:${dateStr}`)) {
           status = 'blocked';
         }
 
@@ -159,6 +161,12 @@ export default function CalendarPage() {
       return;
     }
 
+    const blockKey = `${selectedPropertyId}:${day.date}`;
+    if (day.status === 'available') manuallyBlockedDatesRef.current.add(blockKey);
+    else manuallyBlockedDatesRef.current.delete(blockKey);
+
+    // Update the grid and its derived monthly summary in the same render,
+    // rather than waiting for the calendar data effect to rebuild.
     const updated = calendarDays.map(d => {
       if (d.date === day.date) {
         return {
@@ -208,9 +216,20 @@ export default function CalendarPage() {
     && booking.checkOut > calendarDays[0]?.date
   ));
   const bookedNights = calendarDays.filter(day => day.dayBookings.length > 0).length;
-  const totalProjectedRevenue = monthBookings.reduce((total, booking) => total + booking.totalPrice, 0);
-  const occupancyRate = calendarDays.length ? Math.round((bookedNights / calendarDays.length) * 100) : 0;
-  const confirmedStayCount = monthBookings.length;
+  const blockedNights = calendarDays.filter(day => day.status === 'blocked').length;
+  const bookedRevenue = monthBookings.reduce((total, booking) => total + booking.totalPrice, 0);
+  const blockedRevenueImpact = calendarDays
+    .filter(day => day.status === 'blocked')
+    .reduce((total, day) => total + Number(day.price || 0), 0);
+  // Manual blocks are host-held nights. Include their live nightly forecast in
+  // the calendar projection so the summary responds even before a reservation
+  // record is created for that date.
+  const reservedNights = bookedNights + blockedNights;
+  const totalProjectedRevenue = bookedRevenue + blockedRevenueImpact;
+  const occupancyRate = calendarDays.length ? Math.round((reservedNights / calendarDays.length) * 100) : 0;
+  // A manually held night is a confirmed calendar stay until a reservation
+  // record replaces it, so the total responds to each date the host blocks.
+  const confirmedStayCount = monthBookings.length + blockedNights;
 
   return (
     <div className="calendar-page animate-fade-in-up">
@@ -415,14 +434,16 @@ export default function CalendarPage() {
             <div className="calendar-summary-item">
               <span>Projected revenue</span>
               <strong>£{totalProjectedRevenue.toLocaleString('en-GB')}</strong>
+              {blockedNights > 0 && <em>· £{blockedRevenueImpact.toLocaleString('en-GB')} from manual holds</em>}
             </div>
             <div className="calendar-summary-item">
               <span>Occupancy rate</span>
-              <strong>{occupancyRate}% <em>· {bookedNights} booked nights</em></strong>
+              <strong>{occupancyRate}% <em>· {bookedNights} booked{blockedNights > 0 ? ` · ${blockedNights} held` : ''} / {calendarDays.length} nights</em></strong>
             </div>
             <div className="calendar-summary-item">
               <span>Confirmed stays</span>
               <strong>{confirmedStayCount}</strong>
+              {blockedNights > 0 && <em>· {blockedNights} manual {blockedNights === 1 ? 'hold' : 'holds'}</em>}
             </div>
           </footer>
         </>

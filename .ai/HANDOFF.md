@@ -77,6 +77,13 @@ Latest completed work and current state
 
 Run commands
 
+- 2026-09-20: Calendar manual blocks are now stateful per property/date and
+  immediately update the footer: blocks count as host-held nights for
+  occupancy and add their nightly forecast to projected revenue. State is held
+  in a ref so a date click does not rebuild the calendar or flash its loader.
+- 2026-09-20: Calendar confirmed-stay count now includes manually held dates,
+  so each availability block updates all three monthly footer metrics.
+
 - Backend: `uv run uvicorn api.main:app --reload --host 0.0.0.0 --port 8000`
   (from project root), or `cd api && uv run python main.py`.
 - Frontend: `cd frontend && npm run dev` (port 3000).
