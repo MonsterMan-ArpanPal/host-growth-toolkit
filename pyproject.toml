@@ -1,0 +1,36 @@
+[project]
+name = "wayzyy"
+version = "0.1.0"
+description = "Wayzyy — AI-powered short-term rental host platform backend"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "pydantic>=2.7",
+  "python-multipart>=0.0.9",
+  "requests>=2.32",
+  "pillow>=10.3",
+  "numpy>=1.26",
+  "pandas>=2.2",
+  "joblib>=1.4",
+  "scikit-learn>=1.4,<2",
+  "opencv-python-headless>=4.9",
+  "pyiqa>=0.1.3",
+  "twilio>=9.0",
+  "groq>=0.9",
+  "python-dotenv>=1.0",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.0",
+  "httpx>=0.27", # FastAPI TestClient
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = [
+    "api",
+]
