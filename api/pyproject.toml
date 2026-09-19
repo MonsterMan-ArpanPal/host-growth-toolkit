@@ -11,7 +11,8 @@ dependencies = [
     "numpy>=2.4.6",
     "pandas>=3.0.6",
     "python-multipart>=0.0.32",
-    "scikit-learn>=1.9.1",
+    # Must match the version embedded in best_pricing_model_v1_2.pkl.
+    "scikit-learn==1.7.2",
     "twilio>=9.11.1",
     "uvicorn>=0.53.0",
 ]

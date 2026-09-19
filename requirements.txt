@@ -7,7 +7,7 @@ pillow
 numpy
 pandas
 joblib
-scikit-learn
+scikit-learn==1.7.2
 opencv-python-headless
 openai
 python-dotenv
