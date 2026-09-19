@@ -4149,7 +4149,7 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.0" },
     { name = "python-multipart", specifier = ">=0.0.9" },
     { name = "requests", specifier = ">=2.32" },
-    { name = "scikit-learn", specifier = ">=1.4,<2" },
+    { name = "scikit-learn", specifier = ">=1.4,<1.8" },
     { name = "tinydb", specifier = ">=4.8" },
     { name = "twilio", specifier = ">=9.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.30" },
