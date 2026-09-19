@@ -13,8 +13,6 @@ import {
   properties,
   bookings,
   earnings,
-  getPricingRecommendation,
-  generatePricingCalendar,
   getPricingOpportunities,
 } from '../data/mockData';
 
@@ -80,7 +78,6 @@ export async function getHost() {
 
 // ─── Properties ─────────────────────────────────────────────────
 export async function getProperties() {
-  await delay(200);
   const user = JSON.parse(localStorage.getItem('wayzyy_user') || '{}');
   
   // If user signed up with a property name or has a property ID, show their property
@@ -94,7 +91,18 @@ export async function getProperties() {
     }];
   }
   
-  // Default mock data if no custom user property exists
+  // Fetch real properties from backend
+  try {
+    const res = await fetch('http://localhost:8000/api/properties');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.length > 0) return data;
+    }
+  } catch (err) {
+    console.warn('Backend properties unavailable, using mock data', err);
+  }
+  
+  // Fallback to mock data if backend is not reachable
   return properties;
 }
 
@@ -225,9 +233,39 @@ export async function fetchPricingRecommendation(propertyId, date) {
 }
 
 export async function fetchPricingCalendar(propertyId, startDate) {
-  await delay(500);
-  // In production: GET /api/calendar?property_id=...&start=...
-  return generatePricingCalendar(propertyId, startDate);
+  // Build 30 dates starting from startDate (or today)
+  const parts = (startDate || new Date().toISOString().split('T')[0]).split('-').map(Number);
+  const start = new Date(parts[0], parts[1] - 1, parts[2]);
+  const dates = [];
+  for (let i = 0; i < 30; i++) {
+    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    dates.push(`${yyyy}-${mm}-${dd}`);
+  }
+
+  // Fetch all 30 recommendations from the real backend in parallel
+  const results = await Promise.all(
+    dates.map(date => fetchPricingRecommendation(propertyId, date))
+  );
+
+  // Transform to the calendar shape PricingCalendar expects
+  return dates.map((dateStr, i) => {
+    const rec = results[i];
+    const [y, m, dy] = dateStr.split('-').map(Number);
+    const d = new Date(y, m - 1, dy);
+    return {
+      date: dateStr,
+      dayOfWeek: d.getDay(),
+      isWeekend: d.getDay() === 5 || d.getDay() === 6,
+      recommendedPrice: rec.recommendedPrice,
+      basePrice: rec.priceRange?.[0],
+      marketPressure: rec.marketPressure,
+      demandLevel: rec.demandLevel,
+      event: rec.eventContext ? { name: rec.eventContext } : null,
+    };
+  });
 }
 
 export async function fetchPricingOpportunities(propertyId) {

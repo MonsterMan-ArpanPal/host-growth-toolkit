@@ -9,7 +9,7 @@ import './PricingPage.css';
 
 export default function PricingPage() {
   const [properties, setProperties] = useState([]);
-  const [selectedProperty, setSelectedProperty] = useState('prop_001');
+  const [selectedProperty, setSelectedProperty] = useState(null);
   
   const today = new Date().toISOString().split('T')[0];
   const [selectedDate, setSelectedDate] = useState(today);
@@ -24,7 +24,7 @@ export default function PricingPage() {
       try {
         const props = await getProperties();
         setProperties(props);
-        if (props.length > 0 && !props.find(p => p.id === selectedProperty)) {
+        if (props.length > 0 && (!selectedProperty || !props.find(p => p.id === selectedProperty))) {
           setSelectedProperty(props[0].id);
         }
       } catch (err) {
@@ -35,17 +35,13 @@ export default function PricingPage() {
   }, []);
 
   useEffect(() => {
-    async function loadData() {
+    async function loadRecommendation() {
       if (!selectedProperty || !selectedDate) return;
       setLoading(true);
       setError(null);
       try {
-        const [recData, calData] = await Promise.all([
-          fetchPricingRecommendation(selectedProperty, selectedDate),
-          fetchPricingCalendar(selectedProperty)
-        ]);
+        const recData = await fetchPricingRecommendation(selectedProperty, selectedDate);
         setRecommendation(recData);
-        setCalendarData(calData);
       } catch (err) {
         setError('Failed to load pricing data. Please try again.');
         console.error(err);
@@ -53,8 +49,21 @@ export default function PricingPage() {
         setLoading(false);
       }
     }
-    loadData();
+    loadRecommendation();
   }, [selectedProperty, selectedDate]);
+
+  useEffect(() => {
+    async function loadCalendar() {
+      if (!selectedProperty) return;
+      try {
+        const calData = await fetchPricingCalendar(selectedProperty);
+        setCalendarData(calData);
+      } catch (err) {
+        console.error('Failed to load calendar data', err);
+      }
+    }
+    loadCalendar();
+  }, [selectedProperty]);
 
   const handleApplyPrice = (price) => {
     console.log(`Applied price £${price} for ${selectedDate}`);
