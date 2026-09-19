@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getListings } from '../api/listings';
 import {
   Plus, Users, BedDouble, Bath, MapPin, Home,
-  Image as ImageIcon, Loader2, Sparkles, AlertTriangle
+  Image as ImageIcon, Loader2, Sparkles, AlertTriangle, ChevronRight
 } from 'lucide-react';
 import './ListingsPage.css';
 
@@ -76,7 +76,11 @@ export default function ListingsPage() {
       ) : (
         <div className="listings-grid">
           {listings.map(listing => (
-            <div key={listing.id} className="listing-card glass-card animate-fade-in-up">
+            <div
+              key={listing.id}
+              className="listing-card glass-card animate-fade-in-up"
+              onClick={() => navigate(`/dashboard/listings/${listing.id}`)}
+            >
               <div className="listing-card-photo">
                 {listing.photos && listing.photos.length > 0 ? (
                   <img src={listing.photos[0]} alt={listing.name} />
@@ -125,6 +129,8 @@ export default function ListingsPage() {
                   <ImageIcon size={14} />
                   {listing.photos?.length || 0} photo{(listing.photos?.length || 0) === 1 ? '' : 's'}
                 </div>
+
+                <span className="listing-card-view">View details <ChevronRight size={14} /></span>
               </div>
             </div>
           ))}

@@ -8,14 +8,30 @@ import {
 } from 'lucide-react';
 import './NewListingPage.css';
 
+// Canonical amenity labels — identical to the /setup page and to the
+// pricing model's feature set, so saved listings carry usable pricing signals.
 const AMENITY_OPTIONS = [
-  'WiFi', 'Kitchen', 'A/C', 'Pool', 'Washer', 'Dryer',
-  'Free Parking', 'TV', 'Iron', 'Workspace', 'Heating', 'Elevator',
+  'Wifi', 'Kitchen', 'Heating', 'Smoke alarm', 'Washer', 'Dryer',
+  'Air conditioning', 'TV', 'Iron', 'Elevator',
+  'Free parking on premises', 'Dedicated workspace',
 ];
 
 const PROPERTY_TYPES = [
-  'Apartment', 'House', 'Villa', 'Townhouse', 'Condo',
-  'Loft', 'Cottage', 'Guest Suite', 'Other',
+  'Apartment', 'House', 'Condominium', 'Townhouse', 'Loft',
+  'Villa', 'Condo', 'Cottage', 'Guest Suite', 'Other',
+];
+
+const ROOM_TYPES = ['Entire home/apt', 'Private room', 'Shared room'];
+
+const LONDON_NEIGHBOURHOODS = [
+  'Barking and Dagenham', 'Barnet', 'Bexley', 'Brent', 'Bromley',
+  'Camden', 'City of London', 'Croydon', 'Ealing', 'Enfield',
+  'Greenwich', 'Hackney', 'Hammersmith and Fulham', 'Haringey',
+  'Harrow', 'Havering', 'Hillingdon', 'Hounslow', 'Islington',
+  'Kensington and Chelsea', 'Kingston upon Thames', 'Lambeth',
+  'Lewisham', 'Merton', 'Newham', 'Redbridge', 'Richmond upon Thames',
+  'Southwark', 'Sutton', 'Tower Hamlets', 'Waltham Forest',
+  'Wandsworth', 'Westminster',
 ];
 
 export default function NewListingPage() {
@@ -24,8 +40,11 @@ export default function NewListingPage() {
 
   // Form state
   const [form, setForm] = useState({
+    property_name: '',
     location: '',
+    host_neighbourhood: 'Kensington and Chelsea',
     property_type: '',
+    room_type: 'Entire home/apt',
     capacity_guests: 2,
     bedrooms: 1,
     beds: 1,
@@ -96,7 +115,7 @@ export default function NewListingPage() {
       setError('Please upload at least one photo.');
       return;
     }
-    if (!form.location.trim()) {
+    if (!form.location.trim() && !form.host_neighbourhood.trim()) {
       setError('Please enter a location.');
       return;
     }
@@ -121,7 +140,17 @@ export default function NewListingPage() {
     setSaving(true);
     setError(null);
     try {
-      await saveListing(photos, form, result);
+      const saveResult = await saveListing(photos, form, result);
+
+      // Remember the saved listing as the host's active property so the
+      // pricing suggester pulls its data from the database by default.
+      if (saveResult?.property_id) {
+        const user = JSON.parse(localStorage.getItem('wayzyy_user') || '{}');
+        user.property_id = saveResult.property_id;
+        if (form.property_name) user.property_name = form.property_name;
+        localStorage.setItem('wayzyy_user', JSON.stringify(user));
+      }
+
       setSaved(true);
       setTimeout(() => navigate('/dashboard/listings'), 1500);
     } catch (err) {
@@ -150,11 +179,31 @@ export default function NewListingPage() {
         <div className="nl-form-col">
           {/* Location */}
           <div className="nl-section glass-card">
-            <h3><MapPin size={18} /> Location</h3>
+            <h3><MapPin size={18} /> Property & Location</h3>
             <input
               type="text"
               className="nl-input"
-              placeholder="e.g. Assagao, Goa"
+              placeholder="Property name (e.g. Sunset Villa, Oceanview Cottage)"
+              value={form.property_name}
+              onChange={e => handleChange('property_name', e.target.value)}
+            />
+            <div className="nl-select-wrap" style={{ marginTop: '10px' }}>
+              <select
+                className="nl-select"
+                value={form.host_neighbourhood}
+                onChange={e => handleChange('host_neighbourhood', e.target.value)}
+              >
+                {LONDON_NEIGHBOURHOODS.map(n => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+              <ChevronDown size={16} className="nl-select-icon" />
+            </div>
+            <input
+              type="text"
+              className="nl-input"
+              style={{ marginTop: '10px' }}
+              placeholder="Area description (e.g. Assagao, Goa)"
               value={form.location}
               onChange={e => handleChange('location', e.target.value)}
             />
@@ -162,7 +211,7 @@ export default function NewListingPage() {
 
           {/* Property Type */}
           <div className="nl-section glass-card">
-            <h3><Home size={18} /> Property Type</h3>
+            <h3><Home size={18} /> Property & Room Type</h3>
             <div className="nl-select-wrap">
               <select
                 className="nl-select"
@@ -171,6 +220,18 @@ export default function NewListingPage() {
               >
                 <option value="">Select type...</option>
                 {PROPERTY_TYPES.map(t => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+              <ChevronDown size={16} className="nl-select-icon" />
+            </div>
+            <div className="nl-select-wrap" style={{ marginTop: '10px' }}>
+              <select
+                className="nl-select"
+                value={form.room_type}
+                onChange={e => handleChange('room_type', e.target.value)}
+              >
+                {ROOM_TYPES.map(t => (
                   <option key={t} value={t}>{t}</option>
                 ))}
               </select>

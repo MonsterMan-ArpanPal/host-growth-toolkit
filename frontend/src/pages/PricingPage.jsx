@@ -17,6 +17,7 @@ export default function PricingPage() {
   const [recommendation, setRecommendation] = useState(null);
   const [calendarData, setCalendarData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [propsLoading, setPropsLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -25,10 +26,18 @@ export default function PricingPage() {
         const props = await getProperties();
         setProperties(props);
         if (props.length > 0 && (!selectedProperty || !props.find(p => p.id === selectedProperty))) {
-          setSelectedProperty(props[0].id);
+          // Prefer the host's active property (e.g. the listing they just
+          // created and saved to the database); otherwise the first one.
+          const user = JSON.parse(localStorage.getItem('wayzyy_user') || '{}');
+          const preferred = user.property_id && props.find(p => p.id === user.property_id)
+            ? user.property_id
+            : props[0].id;
+          setSelectedProperty(preferred);
         }
       } catch (err) {
         console.error("Failed to load properties", err);
+      } finally {
+        setPropsLoading(false);
       }
     }
     loadProperties();
@@ -92,6 +101,15 @@ export default function PricingPage() {
           />
         </div>
       </div>
+
+      {!propsLoading && properties.length === 0 && (
+        <div className="glass-card" style={{ padding: '24px', textAlign: 'center', marginBottom: '16px' }}>
+          <h3 style={{ marginBottom: '6px' }}>No properties yet</h3>
+          <p style={{ opacity: 0.8, margin: 0 }}>
+            Add your property or create a listing to get pricing recommendations for your dates.
+          </p>
+        </div>
+      )}
 
       {error && <div className="error-banner">{error}</div>}
 

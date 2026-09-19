@@ -27,7 +27,7 @@ export async function generateListing(files, manualData) {
     formData.append('files', file);
   });
 
-  formData.append('location', manualData.location || '');
+  formData.append('location', manualData.location || manualData.host_neighbourhood || '');
   formData.append('property_type', manualData.property_type || '');
   formData.append('capacity_guests', String(manualData.capacity_guests || 2));
   formData.append('bedrooms', String(manualData.bedrooms || 1));
@@ -64,7 +64,11 @@ export async function saveListing(files, manualData, listingResult) {
     formData.append('files', file);
   });
 
-  formData.append('manual_data', JSON.stringify(manualData));
+  // Record which host owns this listing (used to scope the property list).
+  const user = JSON.parse(localStorage.getItem('wayzyy_user') || '{}');
+  const payload = { ...manualData, email: manualData.email || user.email };
+
+  formData.append('manual_data', JSON.stringify(payload));
   formData.append('listing_result', JSON.stringify(listingResult));
 
   const response = await fetch('/api/listings/save', {
@@ -92,4 +96,19 @@ export async function getListings() {
   }
   const data = await response.json();
   return data.listings || [];
+}
+
+/**
+ * Fetch a single listing's full document from the NoSQL store.
+ * @param {string} listingId
+ * @returns {Promise<Object>} The full listing document
+ */
+export async function getListing(listingId) {
+  const response = await fetch(`/api/listings/${listingId}`);
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+    throw new Error(error.detail || `Fetch listing failed (${response.status})`);
+  }
+  const data = await response.json();
+  return data.listing;
 }

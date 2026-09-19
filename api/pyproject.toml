@@ -11,8 +11,9 @@ dependencies = [
     "numpy>=1.26",
     "pandas>=2.2",
     "python-multipart>=0.0.32",
-    # Must match the version embedded in models/best_pricing_model_v1_2.pkl.
-    "scikit-learn==1.7.2",
+    # Pinned <1.8: models/best_pricing_model_v1_2.pkl was fitted by sklearn
+    # <1.8 (sklearn 1.9 renamed SimpleImputer._fit_dtype -> _fill_dtype).
+    "scikit-learn>=1.4,<1.8",
     "twilio>=9.11.1",
     "uvicorn>=0.53.0",
     "requests>=2.32",
