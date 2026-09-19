@@ -29,6 +29,7 @@ for _p in (SRC_DIR, _THIS_DIR):
         sys.path.insert(0, str(_p))
 
 import json
+import shutil
 import tempfile
 import uuid
 from datetime import datetime, timezone
@@ -98,7 +99,55 @@ LISTINGS_PHOTOS_DIR = PROJECT_ROOT / "data" / "demo" / "listings_photos"
 LISTINGS_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 LISTINGS_PHOTOS_DIR.mkdir(parents=True, exist_ok=True)
 
-listings_db = TinyDB(str(LISTINGS_DB_PATH))
+
+def _recover_listings_store(error: Exception) -> TinyDB:
+    """Preserve an unreadable TinyDB file and recreate an empty valid store."""
+    if LISTINGS_DB_PATH.exists() and LISTINGS_DB_PATH.stat().st_size:
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        backup_path = LISTINGS_DB_PATH.with_name(
+            f"{LISTINGS_DB_PATH.stem}.corrupt-{timestamp}{LISTINGS_DB_PATH.suffix}"
+        )
+        shutil.copy2(LISTINGS_DB_PATH, backup_path)
+        print(f"Warning: Recovered invalid listings store ({error}); backup: {backup_path.name}")
+    LISTINGS_DB_PATH.write_text('{"_default": {}}', encoding="utf-8")
+    return TinyDB(str(LISTINGS_DB_PATH))
+
+
+def _open_listings_store() -> TinyDB:
+    """Open TinyDB only after confirming its JSON storage is readable."""
+    try:
+        if not LISTINGS_DB_PATH.exists() or not LISTINGS_DB_PATH.read_text(encoding="utf-8").strip():
+            raise json.JSONDecodeError("Empty listings store", "", 0)
+        with LISTINGS_DB_PATH.open("r", encoding="utf-8") as store_file:
+            json.load(store_file)
+    except (OSError, json.JSONDecodeError) as error:
+        return _recover_listings_store(error)
+    return TinyDB(str(LISTINGS_DB_PATH))
+
+
+listings_db = _open_listings_store()
+
+
+def _with_listings_store(operation):
+    """Retry one TinyDB operation if the JSON file becomes unreadable at runtime."""
+    global listings_db
+    try:
+        return operation()
+    except json.JSONDecodeError as error:
+        listings_db = _recover_listings_store(error)
+        return operation()
+
+
+def listing_by_id(prop_id: str):
+    return _with_listings_store(lambda: listings_db.get(Query().id == prop_id))
+
+
+def all_listings():
+    return _with_listings_store(listings_db.all)
+
+
+def save_listing(doc: Dict[str, Any]):
+    return _with_listings_store(lambda: listings_db.insert(doc))
 
 # Approximate London borough centroid coordinates (lat, lon), used so the
 # pricing model/comparables can geolocate listings saved from the UI.
@@ -341,7 +390,7 @@ def login(req: LoginRequest):
     # property_id in users.json. Treat either record type as an existing host.
     has_existing_property = bool(user.get("property_id")) or any(
         prop.get("owner_email") == req.email for prop in DEMO_PROPERTIES.values()
-    ) or listings_db.contains(Query().owner_email == req.email)
+    ) or any(doc.get("owner_email") == req.email for doc in all_listings())
     return {
         "token": "fake-jwt-token",
         "user": {**user, "has_existing_property": has_existing_property},
@@ -374,7 +423,7 @@ def list_properties(email: Optional[str] = None, include_demo: bool = False):
             "maxPrice": 1000,
         })
 
-    for doc in listings_db.all():
+    for doc in all_listings():
         if doc.get("owner_email") != email:
             continue
         result.append({
@@ -448,7 +497,7 @@ def recommend_price(req: RecommendRequest):
 
     # Resolve property features: saved listings (NoSQL store) first,
     # then the demo properties JSON.
-    doc = listings_db.get(Query().id == prop_id)
+    doc = listing_by_id(prop_id)
     if doc is not None:
         prop_features = dict(doc)
         prop_features.pop("_id", None)
@@ -609,7 +658,7 @@ async def save_generated_listing(
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
 
-    listings_db.insert(prop_data)
+    save_listing(prop_data)
 
     # Keep the account's active property in sync so future logins enter the
     # dashboard rather than being treated as a first-time host.
@@ -624,7 +673,7 @@ async def save_generated_listing(
 @app.get("/api/listings")
 def list_saved_listings(email: Optional[str] = None):
     """Return only listings owned by the requested host account."""
-    docs = [doc for doc in listings_db.all() if doc.get("owner_email") == email]
+    docs = [doc for doc in all_listings() if doc.get("owner_email") == email]
     result = []
     for doc in docs:
         result.append({
@@ -648,7 +697,7 @@ def list_saved_listings(email: Optional[str] = None):
 @app.get("/api/listings/{listing_id}")
 def get_saved_listing(listing_id: str, email: Optional[str] = None):
     """Return a saved listing only when it belongs to the requested host."""
-    doc = listings_db.get(Query().id == listing_id)
+    doc = listing_by_id(listing_id)
     if doc is None or doc.get("owner_email") != email:
         raise HTTPException(status_code=404, detail="Listing not found")
     doc.pop("_id", None)  # drop TinyDB internal key

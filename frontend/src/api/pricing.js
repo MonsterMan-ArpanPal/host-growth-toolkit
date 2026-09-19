@@ -87,7 +87,9 @@ export async function getProperties() {
     const res = await fetch(`http://localhost:8000/api/properties${query}`);
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) return data;
+      // An empty successful response means this account has no properties;
+      // return it so the Pricing page can render its dedicated empty state.
+      if (Array.isArray(data)) return data;
     }
   } catch (err) {
     console.warn('Backend properties unavailable, using fallback', err);
