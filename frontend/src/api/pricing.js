@@ -13,6 +13,8 @@ import {
   properties,
   bookings,
   earnings,
+  getPricingRecommendation as getDemoPricingRecommendation,
+  generatePricingCalendar as generateDemoPricingCalendar,
   getPricingOpportunities,
 } from '../data/mockData';
 
@@ -144,10 +146,15 @@ const PRICING_API_URL = 'http://localhost:8000/api/pricing/recommend';
 const PRICING_RETRY_ATTEMPTS = 3;
 const PRICING_RETRY_DELAY_MS = 300;
 const CALENDAR_REQUEST_CONCURRENCY = 5;
+let pricingApiUnavailable = false;
 
 const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function requestPricingRecommendation(propertyId, date) {
+  if (pricingApiUnavailable) {
+    throw new TypeError('Pricing API is unavailable');
+  }
+
   let lastError;
 
   for (let attempt = 1; attempt <= PRICING_RETRY_ATTEMPTS; attempt++) {
@@ -168,7 +175,10 @@ async function requestPricingRecommendation(propertyId, date) {
       lastError = error;
     } catch (error) {
       lastError = error;
-      if (attempt === PRICING_RETRY_ATTEMPTS) throw error;
+      if (attempt === PRICING_RETRY_ATTEMPTS) {
+        if (error instanceof TypeError) pricingApiUnavailable = true;
+        throw error;
+      }
     }
 
     await wait(PRICING_RETRY_DELAY_MS * attempt);
@@ -269,12 +279,21 @@ export async function fetchPricingRecommendation(propertyId, date) {
       eventContext: data.event_active ? `${data.event_name} (${data.event_type})` : null
     };
   } catch (err) {
+    // A frontend-only clone is still a usable product demo. Use its bundled,
+    // deterministic recommendation data when FastAPI is not running locally.
+    if (err instanceof TypeError) {
+      return getDemoPricingRecommendation(propertyId, date);
+    }
     console.error("FastAPI backend failed", err);
     throw err;
   }
 }
 
 export async function fetchPricingCalendar(propertyId, startDate) {
+  if (pricingApiUnavailable) {
+    return generateDemoPricingCalendar(propertyId, startDate);
+  }
+
   // Build 30 dates starting from startDate (or today)
   const parts = (startDate || new Date().toISOString().split('T')[0]).split('-').map(Number);
   const start = new Date(parts[0], parts[1] - 1, parts[2]);

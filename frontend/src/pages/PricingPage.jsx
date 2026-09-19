@@ -76,7 +76,7 @@ export default function PricingPage() {
       <div className="pricing-header">
         <div className="pricing-controls-row">
           <select 
-            value={selectedProperty} 
+            value={selectedProperty || ''}
             onChange={(e) => setSelectedProperty(e.target.value)}
             className="property-selector"
           >

@@ -44,6 +44,7 @@ Latest completed work and current state
 - End-to-end verification completed: recommendation, comparables, 30-day calendar, and calendar date selection all load real backend data.
 - Demand mapping was verified: backend low maps to green, medium to neutral, and high to red in the calendar.
 - Calendar loading was made resilient to transient request failures: each pricing request retries up to three times, and calendar requests are limited to five concurrent calls.
+- Frontend-only demo support added: if FastAPI is unreachable, the Pricing page uses the repository's deterministic bundled demo recommendations and calendar instead of showing a loading error. When FastAPI is available, real API recommendations remain the primary source.
 
 After this
 
