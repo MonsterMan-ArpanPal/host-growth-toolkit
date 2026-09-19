@@ -336,7 +336,16 @@ def login(req: LoginRequest):
     user = USERS.get(req.email)
     if not user or user["password"] != req.password:
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    return {"token": "fake-jwt-token", "user": user}
+
+    # Older accounts may have listings saved in TinyDB without an active
+    # property_id in users.json. Treat either record type as an existing host.
+    has_existing_property = bool(user.get("property_id")) or any(
+        prop.get("owner_email") == req.email for prop in DEMO_PROPERTIES.values()
+    ) or listings_db.contains(Query().owner_email == req.email)
+    return {
+        "token": "fake-jwt-token",
+        "user": {**user, "has_existing_property": has_existing_property},
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -601,6 +610,13 @@ async def save_generated_listing(
     }
 
     listings_db.insert(prop_data)
+
+    # Keep the account's active property in sync so future logins enter the
+    # dashboard rather than being treated as a first-time host.
+    owner_email = prop_data.get("owner_email")
+    if owner_email in USERS:
+        USERS[owner_email]["property_id"] = prop_id
+        save_users()
 
     return {"success": True, "property_id": prop_id}
 

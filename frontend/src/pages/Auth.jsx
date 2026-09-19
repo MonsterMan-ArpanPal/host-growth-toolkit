@@ -39,10 +39,10 @@ const Auth = () => {
         });
       }
       
-      if (data.user && data.user.property_id) {
+      if (isLogin && data.user && (data.user.property_id || data.user.has_existing_property)) {
         navigate('/dashboard');
       } else {
-        navigate('/setup');
+        navigate('/dashboard/listings/new');
       }
     } catch (err) {
       setError(err.message || 'An error occurred. Please try again.');
