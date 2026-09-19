@@ -1,25 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  RefreshCw, 
-  Calendar as CalendarIcon, 
-  Copy, 
   Check, 
   AlertTriangle, 
   Sparkles, 
-  ExternalLink, 
-  Plus, 
   X, 
   ChevronLeft, 
   ChevronRight,
   Home,
-  ShieldAlert,
-  Layers,
-  Info
+  ShieldAlert
 } from 'lucide-react';
 import { getProperties } from '../api/pricing';
 import { generatePricingCalendar } from '../data/mockData';
 import { bookings as initialBookings } from '../data/mockData';
 import './CalendarPage.css';
+
+// Lets the default demo property show the turnover workflow before it has
+// connected reservations. Booking endpoints take precedence when present.
+const demoTurnoverWindows = {
+  demo_001: {
+    '2026-09-12': {
+      checkoutGuest: 'Maya R.',
+      checkinGuest: 'Oliver K.'
+    },
+    '2026-09-19': {
+      checkoutGuest: 'Nina P.',
+      checkinGuest: 'Theo B.'
+    }
+  }
+};
 
 export default function CalendarPage() {
   const [properties, setProperties] = useState([]);
@@ -29,22 +37,15 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [bookingsList, setBookingsList] = useState(initialBookings);
 
-  // iCal Sync Modal state
-  const [showSyncModal, setShowSyncModal] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [syncSuccess, setSyncSuccess] = useState(false);
-  const [copiedLink, setCopiedLink] = useState(false);
-  const [newFeedUrl, setNewFeedUrl] = useState('');
-  const [activeFeeds, setActiveFeeds] = useState([
-    { id: 1, name: 'Airbnb iCal Feed', channel: 'airbnb', url: 'https://www.airbnb.com/calendar/ical/9841203.ics', status: 'Active' },
-    { id: 2, name: 'Google / iOS Calendar Feed', channel: 'google', url: 'https://calendar.google.com/ical/wayzyy_prop001.ics', status: 'Active' }
-  ]);
-
   // Conflict state
   const [activeConflict, setActiveConflict] = useState(null);
 
   // Day Inspector Drawer state
   const [selectedDayDetail, setSelectedDayDetail] = useState(null);
+
+  // Keeps the cleaning summary close to the date it applies to.
+  const [activeTurnoverDate, setActiveTurnoverDate] = useState(null);
+  const [activeBookingPopover, setActiveBookingPopover] = useState(null);
 
   // Initialize properties
   useEffect(() => {
@@ -60,9 +61,8 @@ export default function CalendarPage() {
   useEffect(() => {
     if (!selectedPropertyId) return;
     setLoading(true);
-    
-    // Simulate API fetch delay
-    setTimeout(() => {
+
+    const refreshTimer = setTimeout(() => {
       const year = currentMonth.getFullYear();
       const month = currentMonth.getMonth();
       const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -102,8 +102,16 @@ export default function CalendarPage() {
         const matchedBookings = propertyBookings.filter(b => dateStr >= b.checkIn && dateStr < b.checkOut);
         
         // Check turnover / transition dates for this property
-        const isCheckOutDate = propertyBookings.some(b => b.checkOut === dateStr);
-        const isCheckInDate = propertyBookings.some(b => b.checkIn === dateStr);
+        const scheduledTurnover = demoTurnoverWindows[selectedPropertyId]?.[dateStr];
+        const checkingOutBookings = propertyBookings.filter(b => b.checkOut === dateStr);
+        const checkingInBookings = propertyBookings.filter(b => b.checkIn === dateStr);
+
+        if (scheduledTurnover && checkingOutBookings.length === 0 && checkingInBookings.length === 0) {
+          checkingOutBookings.push({ id: `${dateStr}-checkout`, guestName: scheduledTurnover.checkoutGuest });
+          checkingInBookings.push({ id: `${dateStr}-checkin`, guestName: scheduledTurnover.checkinGuest });
+        }
+        const isCheckOutDate = checkingOutBookings.length > 0;
+        const isCheckInDate = checkingInBookings.length > 0;
         const requiresTurnover = isCheckOutDate || isCheckInDate;
 
         let status = 'available';
@@ -129,13 +137,18 @@ export default function CalendarPage() {
           price: pricing ? pricing.recommendedPrice : 185,
           requiresTurnover,
           isCheckOutDate,
-          isCheckInDate
+          isCheckInDate,
+          checkingOutBookings,
+          checkingInBookings
         });
       }
       
       setCalendarDays(newDays);
+      setActiveTurnoverDate(null);
       setLoading(false);
     }, 350);
+
+    return () => clearTimeout(refreshTimer);
   }, [selectedPropertyId, currentMonth, bookingsList]);
 
   // Toggle manual date block/available
@@ -158,74 +171,30 @@ export default function CalendarPage() {
     setCalendarDays(updated);
   };
 
-  // Trigger iCal Auto-Sync simulation
-  const handleAutoSyncFeed = () => {
-    setIsSyncing(true);
-    setSyncSuccess(false);
-    setTimeout(() => {
-      setIsSyncing(false);
-      setSyncSuccess(true);
-      setTimeout(() => setSyncSuccess(false), 4000);
-    }, 1200);
-  };
-
-  // Copy outbound iCal link to clipboard
-  const outboundUrl = `https://api.wayzyy.com/v1/ical/export/${selectedPropertyId || 'prop_001'}.ics`;
-  const handleCopyOutboundLink = () => {
-    navigator.clipboard.writeText(outboundUrl);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2500);
-  };
-
-  // Add new external feed
-  const handleAddFeed = (e) => {
-    e.preventDefault();
-    if (!newFeedUrl) return;
-    let channel = 'google';
-    if (newFeedUrl.includes('airbnb')) channel = 'airbnb';
-    if (newFeedUrl.includes('wayzyy')) channel = 'wayzyy';
-
-    setActiveFeeds([
-      ...activeFeeds,
-      {
-        id: Date.now(),
-        name: `Custom ${channel.toUpperCase()} Feed`,
-        channel,
-        url: newFeedUrl,
-        status: 'Active'
-      }
-    ]);
-    setNewFeedUrl('');
-  };
-
   // Resolve conflict helper
   const handleResolveConflict = () => {
     if (!activeConflict) return;
-    // Keep Elena (Airbnb) and adjust Wayzyy booking
+    // Keep the first reservation and remove its conflicting duplicate.
     const resolved = bookingsList.filter(b => b.id !== 'bk_004_conflict');
     setBookingsList(resolved);
     setActiveConflict(null);
   };
 
-  // Render Channel Badge with required color themes
-  const renderChannelBadge = (booking) => {
-    const channel = booking.channel || 'wayzyy';
-    let badgeClass = 'badge-wayzyy';
-    let channelLabel = 'Wayzyy Direct';
-
-    if (channel === 'airbnb') {
-      badgeClass = 'badge-airbnb';
-      channelLabel = 'Airbnb';
-    } else if (channel === 'google' || channel === 'apple') {
-      badgeClass = 'badge-apple-google';
-      channelLabel = 'iOS / Google';
-    }
-
+  const renderBookingBadge = (booking, date) => {
     return (
-      <div className={`channel-badge ${badgeClass}`} title={`${channelLabel}: ${booking.guestName}`}>
-        <span className="badge-dot"></span>
-        <span className="badge-text">{channelLabel} • {booking.guestName.split(' ')[0]}</span>
-      </div>
+      <button
+        type="button"
+        className="booking-badge"
+        aria-label={`View booking details for ${booking.guestName}`}
+        aria-expanded={activeBookingPopover?.id === booking.id && activeBookingPopover?.date === date}
+        onClick={(event) => {
+          event.stopPropagation();
+          const isOpen = activeBookingPopover?.id === booking.id && activeBookingPopover?.date === date;
+          setActiveBookingPopover(isOpen ? null : { ...booking, date });
+        }}
+      >
+        <span className="badge-text">Reserved · {booking.guestName.split(' ')[0]}</span>
+      </button>
     );
   };
 
@@ -233,6 +202,15 @@ export default function CalendarPage() {
   const firstDayOffset = currentMonth.getDay() === 0 ? 6 : currentMonth.getDay() - 1;
   const emptyCells = Array.from({ length: firstDayOffset }, (_, i) => i);
   const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const monthBookings = bookingsList.filter(booking => (
+    booking.propertyId === selectedPropertyId
+    && booking.checkIn <= calendarDays[calendarDays.length - 1]?.date
+    && booking.checkOut > calendarDays[0]?.date
+  ));
+  const bookedNights = calendarDays.filter(day => day.dayBookings.length > 0).length;
+  const totalProjectedRevenue = monthBookings.reduce((total, booking) => total + booking.totalPrice, 0);
+  const occupancyRate = calendarDays.length ? Math.round((bookedNights / calendarDays.length) * 100) : 0;
+  const confirmedStayCount = monthBookings.length;
 
   return (
     <div className="calendar-page animate-fade-in-up">
@@ -247,14 +225,13 @@ export default function CalendarPage() {
               <div className="conflict-title">⚠️ Double-Booking Conflict Detected</div>
               <div className="conflict-subtitle">
                 Overlapping dates on <strong>Sep 21–23, 2026</strong> between 
-                <span className="channel-tag airbnb"> Airbnb ({activeConflict.b1.guestName})</span> and 
-                <span className="channel-tag wayzyy"> Wayzyy Web ({activeConflict.b2.guestName})</span>.
+                <strong>{activeConflict.b1.guestName}</strong> and <strong>{activeConflict.b2.guestName}</strong>.
               </div>
             </div>
           </div>
           <div className="conflict-banner-actions">
             <button className="btn-resolve-conflict" onClick={handleResolveConflict}>
-              <Check size={16} /> Auto-Resolve & Keep Airbnb
+              <Check size={16} /> Resolve conflict
             </button>
           </div>
         </div>
@@ -263,8 +240,8 @@ export default function CalendarPage() {
       {/* ─── Header Section with Property Switcher ───────────────── */}
       <header className="calendar-header">
         <div className="header-left">
-          <h1 className="page-title">Availability & iCal Calendar</h1>
-          <p className="page-subtitle">Real-time multi-channel inventory, pricing & turnover prep</p>
+          <h1 className="page-title">Availability Calendar</h1>
+          <p className="page-subtitle">Availability, pricing and turnover preparation</p>
         </div>
         
         <div className="calendar-controls">
@@ -280,17 +257,11 @@ export default function CalendarPage() {
             >
               {properties.map(p => (
                 <option key={p.id} value={p.id}>
-                  🏡 {p.name}
+                  {p.name}
                 </option>
               ))}
             </select>
           </div>
-
-          {/* Sync iCal Modal Launcher Button */}
-          <button className="btn-sync-ical" onClick={() => setShowSyncModal(true)}>
-            <RefreshCw size={16} className={isSyncing ? 'spin-icon' : ''} />
-            <span>Sync iCal</span>
-          </button>
 
           {/* Month Selector */}
           <div className="month-selector">
@@ -315,34 +286,14 @@ export default function CalendarPage() {
         </div>
       </header>
 
-      {/* ─── Channel Color Legend & Turnover Bar ────────────────────── */}
-      <div className="calendar-legend-bar">
-        <div className="legend-items">
-          <span className="legend-label">Channel Feeds:</span>
-          <span className="legend-tag coral">
-            <span className="tag-dot"></span> Airbnb (Coral)
-          </span>
-          <span className="legend-tag blue">
-            <span className="tag-dot"></span> Apple iOS / Google (Blue)
-          </span>
-          <span className="legend-tag green">
-            <span className="tag-dot"></span> Direct Wayzyy (Green)
-          </span>
-        </div>
-
-        <div className="turnover-legend">
-          <Sparkles size={15} className="broom-legend-icon" />
-          <span>Turnover & Cleaning Prep Required</span>
-        </div>
-      </div>
-
       {/* ─── Main Calendar Grid ──────────────────────────────────── */}
       {loading ? (
         <div className="calendar-container skeleton-container">
           <div className="skeleton" style={{ height: '560px', width: '100%', borderRadius: '16px' }}></div>
         </div>
       ) : (
-        <div className="calendar-container">
+        <>
+          <div className="calendar-container">
           <div className="calendar-grid-header">
             {daysOfWeek.map(day => (
               <div key={day} className="day-name">{day}</div>
@@ -368,11 +319,45 @@ export default function CalendarPage() {
                     <span className="cell-price">£{day.price}</span>
                   </div>
 
-                  {/* Turnover Broom / Sparkle Indicator on checkout/checkin dates */}
+                  {/* Turnover is only shown on booking arrival/departure dates. */}
                   {day.requiresTurnover && (
-                    <div className="turnover-indicator" title="Turnover & Cleaning prep required">
+                    <button
+                      type="button"
+                      className="turnover-indicator"
+                      aria-label={`View cleaning prep for ${day.date}`}
+                      aria-expanded={activeTurnoverDate === day.date}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setActiveTurnoverDate(activeTurnoverDate === day.date ? null : day.date);
+                      }}
+                    >
                       <Sparkles size={13} className="sparkle-icon" />
-                      <span className="turnover-text">Prep</span>
+                      <span className="turnover-text">
+                        {day.isCheckOutDate ? '11 AM Turnover' : 'Cleaning Prep'}
+                      </span>
+                    </button>
+                  )}
+
+                  {activeTurnoverDate === day.date && (
+                    <div
+                      className="turnover-popover"
+                      role="status"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <div className="turnover-popover-title">
+                        <Sparkles size={14} /> Cleaning prep
+                      </div>
+                      {day.checkingOutBookings.map(booking => (
+                        <p key={`checkout-${booking.id}`}>
+                          {booking.guestName} checks out at <strong>11:00 AM</strong>.
+                        </p>
+                      ))}
+                      {day.checkingInBookings.map(booking => (
+                        <p key={`checkin-${booking.id}`}>
+                          {booking.guestName} checks in at <strong>2:00 PM</strong>.
+                        </p>
+                      ))}
+                      <span className="turnover-popover-note">Allow time for cleaning and inspection.</span>
                     </div>
                   )}
 
@@ -382,115 +367,65 @@ export default function CalendarPage() {
                         <AlertTriangle size={12} /> Double Booked
                       </div>
                     ) : day.dayBookings.length > 0 ? (
-                      day.dayBookings.map(b => renderChannelBadge(b))
+                      day.dayBookings.map(b => renderBookingBadge(b, day.date))
                     ) : day.status === 'blocked' ? (
                       <div className="status-badge blocked">Blocked</div>
                     ) : (
                       <div className="status-badge available">Available</div>
                     )}
                   </div>
+
+                  {activeBookingPopover?.date === day.date && (
+                    <div className="booking-popover" onClick={(event) => event.stopPropagation()}>
+                      <div className="booking-popover-topline">
+                        <span>Reservation</span>
+                        <button
+                          type="button"
+                          aria-label="Close booking details"
+                          onClick={() => setActiveBookingPopover(null)}
+                        >
+                          <X size={13} />
+                        </button>
+                      </div>
+                      <strong className="booking-popover-guest">{activeBookingPopover.guestName}</strong>
+                      <div className="booking-popover-detail">
+                        <span>Payout total</span>
+                        <strong>£{activeBookingPopover.totalPrice}</strong>
+                      </div>
+                      <div className="booking-popover-times">
+                        <span>Check-in: {activeBookingPopover.checkIn} · 2:00 PM</span>
+                        <span>Check-out: {activeBookingPopover.checkOut} · 11:00 AM</span>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-guest-message"
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        View Full Guest Message
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
-        </div>
-      )}
-
-      {/* ─── iCal Sync & Feed Modal ───────────────────────────────── */}
-      {showSyncModal && (
-        <div className="modal-backdrop animate-fade-in" onClick={() => setShowSyncModal(false)}>
-          <div className="modal-glass-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <div className="modal-title-box">
-                <RefreshCw size={20} className="modal-title-icon" />
-                <h2>iCal Calendar Sync & Feeds</h2>
-              </div>
-              <button className="btn-close-modal" aria-label="Close modal" onClick={() => setShowSyncModal(false)}>
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="modal-body">
-              {/* Section 1: Auto-Detect & Sync Feed Button */}
-              <div className="sync-action-box">
-                <div className="sync-box-info">
-                  <h3>Auto-Detect & Background Sync</h3>
-                  <p>Fetch real-time reservations from connected Airbnb, Booking.com, and Google iCal feeds.</p>
-                </div>
-                <button 
-                  className="btn-primary-sync"
-                  onClick={handleAutoSyncFeed}
-                  disabled={isSyncing}
-                >
-                  <RefreshCw size={16} className={isSyncing ? 'spin-icon' : ''} />
-                  {isSyncing ? 'Syncing Feeds...' : 'Auto-Detect & Sync Feed'}
-                </button>
-              </div>
-
-              {syncSuccess && (
-                <div className="sync-success-alert">
-                  <Check size={16} /> All active iCal feeds synced successfully! 3 reservations updated.
-                </div>
-              )}
-
-              {/* Section 2: Copy Outbound iCal Feed Link */}
-              <div className="outbound-link-box">
-                <label className="input-label">Wayzyy Outbound iCal Feed URL (For Apple iOS & Google Calendar)</label>
-                <div className="copy-link-group">
-                  <input 
-                    type="text" 
-                    readOnly 
-                    value={outboundUrl}
-                    className="outbound-url-input" 
-                  />
-                  <button className="btn-copy-link" onClick={handleCopyOutboundLink}>
-                    {copiedLink ? <Check size={16} /> : <Copy size={16} />}
-                    <span>{copiedLink ? 'Copied!' : 'Copy Link'}</span>
-                  </button>
-                </div>
-                <p className="field-hint">Paste this feed URL into your iPhone / Mac Calendar or Google Calendar app.</p>
-              </div>
-
-              {/* Section 3: Active Inbound iCal Feeds */}
-              <div className="active-feeds-section">
-                <h3>Connected Channel Feeds</h3>
-                <div className="feeds-list">
-                  {activeFeeds.map(feed => (
-                    <div key={feed.id} className="feed-item">
-                      <div className="feed-info">
-                        <span className={`channel-pill ${feed.channel}`}>
-                          {feed.channel.toUpperCase()}
-                        </span>
-                        <div>
-                          <div className="feed-name">{feed.name}</div>
-                          <div className="feed-url">{feed.url}</div>
-                        </div>
-                      </div>
-                      <span className="feed-status-badge">
-                        <span className="live-dot"></span> Active
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Section 4: Add New iCal Feed Form */}
-              <form onSubmit={handleAddFeed} className="add-feed-form">
-                <input 
-                  type="url" 
-                  placeholder="https://www.airbnb.com/calendar/ical/..."
-                  value={newFeedUrl}
-                  onChange={(e) => setNewFeedUrl(e.target.value)}
-                  className="add-feed-input"
-                  required
-                />
-                <button type="submit" className="btn-add-feed">
-                  <Plus size={16} /> Add Feed
-                </button>
-              </form>
-            </div>
           </div>
-        </div>
+
+          <footer className="calendar-summary" aria-label="September calendar summary">
+            <div className="calendar-summary-item">
+              <span>Projected revenue</span>
+              <strong>£{totalProjectedRevenue.toLocaleString('en-GB')}</strong>
+            </div>
+            <div className="calendar-summary-item">
+              <span>Occupancy rate</span>
+              <strong>{occupancyRate}% <em>· {bookedNights} booked nights</em></strong>
+            </div>
+            <div className="calendar-summary-item">
+              <span>Confirmed stays</span>
+              <strong>{confirmedStayCount}</strong>
+            </div>
+          </footer>
+        </>
       )}
 
       {/* ─── Day Detail Inspector Drawer ───────────────────────────── */}
@@ -530,7 +465,7 @@ export default function CalendarPage() {
                     <div key={b.id} className="res-card">
                       <div className="res-top">
                         <span className="res-guest">{b.guestName}</span>
-                        {renderChannelBadge(b)}
+                        <span className="reservation-label">Reserved</span>
                       </div>
                       <div className="res-details">
                         <span>Check-In: {b.checkIn}</span>
