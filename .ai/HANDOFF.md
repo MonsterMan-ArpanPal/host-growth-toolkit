@@ -93,3 +93,8 @@ Next steps
 - Then continue improving/testing the Dynamic Pricing feature and other
   Host Growth Toolkit features.
 - Model compatibility pin retained after backend merge: the serialized pricing model requires scikit-learn==1.7.2.
+
+- 2026-09-19: Pulled `origin/main` (fast-forward). Restored local demo-data edits; `properties.json` was conflict-resolved as a union of 30 pulled and four local-only records (34 total). `users.json` local edits remain staged. The temporary safety stash is retained.
+- 2026-09-19: Diagnosed pricing endpoint 500s after the pull: the comparable-listings CSV's `price` column is pandas 3.0 `str` dtype, which bypasses the legacy `dtype == 'O'` cleanup in `src/pricing/comparables.py`; filtering then attempts `str >= float`. All non-pricing endpoints verified in the terminal log returned 200.
+- 2026-09-19: Fixed the pricing 500 by coercing comparable-listing prices to numeric regardless of pandas string dtype; the FastAPI pricing recommendation request now returns 200 under pandas 3.0.6.
+- 2026-09-19: Scoped property and listing reads to the signed-in email. The pricing selector, Listings page, and listing detail request their account's records only; API isolation checks and the frontend production build pass.

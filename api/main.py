@@ -343,18 +343,19 @@ def login(req: LoginRequest):
 # Properties
 # ---------------------------------------------------------------------------
 @app.get("/api/properties")
-def list_properties(include_demo: bool = False):
+def list_properties(email: Optional[str] = None, include_demo: bool = False):
     """
     Return the host's own properties for the pricing selector.
 
-    Seeded demo properties and anonymous onboarding rows (those with no
-    explicit name) are hidden so the selector only shows the host's own
-    listings. Pass ?include_demo=true to include them (dev/demo only).
+    Only records owned by ``email`` are returned. Seeded demo properties can
+    be included explicitly with ?include_demo=true for development.
     """
     result = []
     for prop_id, prop in DEMO_PROPERTIES.items():
-        named = bool(prop.get("name") or prop.get("owner_email"))
-        if not named and not include_demo:
+        is_demo = not prop.get("owner_email")
+        if not include_demo and prop.get("owner_email") != email:
+            continue
+        if include_demo and not is_demo and prop.get("owner_email") != email:
             continue
         result.append({
             "id": prop_id,
@@ -365,6 +366,8 @@ def list_properties(include_demo: bool = False):
         })
 
     for doc in listings_db.all():
+        if doc.get("owner_email") != email:
+            continue
         result.append({
             "id": doc.get("id"),
             "name": doc.get("name") or doc.get("listing_title") or "New Listing",
@@ -603,9 +606,9 @@ async def save_generated_listing(
 
 
 @app.get("/api/listings")
-def list_saved_listings():
-    """Return all listings saved in the NoSQL store."""
-    docs = listings_db.all()
+def list_saved_listings(email: Optional[str] = None):
+    """Return only listings owned by the requested host account."""
+    docs = [doc for doc in listings_db.all() if doc.get("owner_email") == email]
     result = []
     for doc in docs:
         result.append({
@@ -627,10 +630,10 @@ def list_saved_listings():
 
 
 @app.get("/api/listings/{listing_id}")
-def get_saved_listing(listing_id: str):
-    """Return the full document for a single saved listing (detail view)."""
+def get_saved_listing(listing_id: str, email: Optional[str] = None):
+    """Return a saved listing only when it belongs to the requested host."""
     doc = listings_db.get(Query().id == listing_id)
-    if doc is None:
+    if doc is None or doc.get("owner_email") != email:
         raise HTTPException(status_code=404, detail="Listing not found")
     doc.pop("_id", None)  # drop TinyDB internal key
     return {"listing": doc}

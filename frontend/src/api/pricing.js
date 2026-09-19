@@ -80,10 +80,11 @@ export async function getHost() {
 
 // ─── Properties ─────────────────────────────────────────────────
 export async function getProperties() {
-  // Always prefer the backend list: it contains the demo properties plus
-  // every listing saved in the database, so pricing can price any of them.
+  const user = JSON.parse(localStorage.getItem('wayzyy_user') || '{}');
+  const query = user.email ? `?email=${encodeURIComponent(user.email)}` : '';
+  // Always prefer the backend list for the signed-in host.
   try {
-    const res = await fetch('http://localhost:8000/api/properties');
+    const res = await fetch(`http://localhost:8000/api/properties${query}`);
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) return data;
@@ -93,7 +94,6 @@ export async function getProperties() {
   }
 
   // Offline fallback: the host's own property, then mock data.
-  const user = JSON.parse(localStorage.getItem('wayzyy_user') || '{}');
   if (user.property_id || user.property_name) {
     return [{
       id: user.property_id || 'prop_custom_001',
