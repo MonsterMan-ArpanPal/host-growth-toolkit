@@ -140,23 +140,65 @@ export async function getEarnings() {
 }
 
 // ─── Pricing ────────────────────────────────────────────────────
+const PRICING_API_URL = 'http://localhost:8000/api/pricing/recommend';
+const PRICING_RETRY_ATTEMPTS = 3;
+const PRICING_RETRY_DELAY_MS = 300;
+const CALENDAR_REQUEST_CONCURRENCY = 5;
+
+const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+async function requestPricingRecommendation(propertyId, date) {
+  let lastError;
+
+  for (let attempt = 1; attempt <= PRICING_RETRY_ATTEMPTS; attempt++) {
+    try {
+      const res = await fetch(PRICING_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ property_id: propertyId, date })
+      });
+
+      if (res.ok) return res.json();
+
+      const error = new Error(`API error: ${res.status}`);
+      // Bad request and missing-property responses cannot recover through retrying.
+      if (res.status < 500 || attempt === PRICING_RETRY_ATTEMPTS) throw error;
+      lastError = error;
+    } catch (error) {
+      lastError = error;
+      if (attempt === PRICING_RETRY_ATTEMPTS) throw error;
+    }
+
+    await wait(PRICING_RETRY_DELAY_MS * attempt);
+  }
+
+  throw lastError;
+}
+
+async function mapWithConcurrency(items, concurrency, mapper) {
+  const results = new Array(items.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < items.length) {
+      const index = nextIndex++;
+      results[index] = await mapper(items[index]);
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, items.length) }, worker)
+  );
+  return results;
+}
+
 export async function fetchPricingRecommendation(propertyId, date) {
   try {
     const user = JSON.parse(localStorage.getItem('wayzyy_user') || '{}');
     const targetPropertyId = user.property_id || propertyId;
-
-    const res = await fetch('http://localhost:8000/api/pricing/recommend', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ property_id: targetPropertyId, date })
-    });
-    
-    if (!res.ok) {
-      throw new Error(`API error: ${res.status}`);
-    }
-    const data = await res.json();
+    const data = await requestPricingRecommendation(targetPropertyId, date);
     
     // Transform FastAPI data to match frontend's expected format
     return {
@@ -245,9 +287,11 @@ export async function fetchPricingCalendar(propertyId, startDate) {
     dates.push(`${yyyy}-${mm}-${dd}`);
   }
 
-  // Fetch all 30 recommendations from the real backend in parallel
-  const results = await Promise.all(
-    dates.map(date => fetchPricingRecommendation(propertyId, date))
+  // Keep the initial calendar load gentle on the local API while preserving order.
+  const results = await mapWithConcurrency(
+    dates,
+    CALENDAR_REQUEST_CONCURRENCY,
+    date => fetchPricingRecommendation(propertyId, date)
   );
 
   // Transform to the calendar shape PricingCalendar expects
