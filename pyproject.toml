@@ -13,6 +13,7 @@ dependencies = [
   "numpy>=1.26",
   "pandas>=2.2",
   "joblib>=1.4",
+  # The serialized Random Forest pipeline in models/ was trained with 1.7.2.
   "scikit-learn==1.7.2",
   "opencv-python-headless>=4.9",
   "pyiqa>=0.1.3",

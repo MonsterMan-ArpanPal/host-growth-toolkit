@@ -46,6 +46,7 @@ Latest completed work and current state
 - Demand mapping was verified: backend low maps to green, medium to neutral, and high to red in the calendar.
 - Calendar loading was made resilient to transient request failures: each pricing request retries up to three times, and calendar requests are limited to five concurrent calls.
 - Frontend-only demo support added: if FastAPI is unreachable, the Pricing page uses the repository's deterministic bundled demo recommendations and calendar instead of showing a loading error. When FastAPI is available, real API recommendations remain the primary source.
+- Model compatibility: `models/best_pricing_model_v1_2.pkl` embeds scikit-learn 1.7.2. Backend dependency manifests pin `scikit-learn==1.7.2` so new environments can load the model reliably.
 
 After this
 
