@@ -30,6 +30,7 @@ Dynamic date-specific recommendations
 
 Latest completed work and current state
 
+- Remote main was merged locally after a rejected push; demo JSON records were union-merged with no divergent shared entries.
 - Calendar turnover UX refined: the static turnover banner was removed and September 12/19 demo turnover tags now open a date-level cleaning-prep popover. Booking arrival/departure dates use the same dynamic indicator.
 - Calendar simplified: iCal sync, external-channel UI, property-name emojis, and color-coded reservation panels were removed in favor of neutral booking states.
 - Calendar date cells now use a vertical hierarchy: prominent date, muted price beneath it, and a bottom-aligned status.
