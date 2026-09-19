@@ -92,3 +92,4 @@ Next steps
   ListingsPage gallery is not empty on first load.
 - Then continue improving/testing the Dynamic Pricing feature and other
   Host Growth Toolkit features.
+- Model compatibility pin retained after backend merge: the serialized pricing model requires scikit-learn==1.7.2.
