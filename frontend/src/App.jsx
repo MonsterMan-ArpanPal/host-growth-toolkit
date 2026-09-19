@@ -6,6 +6,7 @@ import DashboardLayout from './components/layout/DashboardLayout'
 import Dashboard from './pages/Dashboard'
 import PricingPage from './pages/PricingPage'
 import ListingsPage from './pages/ListingsPage'
+import NewListingPage from './pages/NewListingPage'
 import BookingsPage from './pages/BookingsPage'
 import CalendarPage from './pages/CalendarPage'
 
@@ -22,6 +23,7 @@ function App() {
         <Route path="pricing" element={<PricingPage />} />
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="listings" element={<ListingsPage />} />
+        <Route path="listings/new" element={<NewListingPage />} />
         <Route path="bookings" element={<BookingsPage />} />
       </Route>
     </Routes>

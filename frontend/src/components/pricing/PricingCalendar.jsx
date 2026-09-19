@@ -39,10 +39,14 @@ export default function PricingCalendar({ calendarData, selectedDate, onDateSele
           const dateNum = parseInt(dd, 10);
           const isSelected = dayData.date === selectedDate;
 
+          let mappedDemand = dayData.demandLevel;
+          if (mappedDemand === 'high') mappedDemand = 'low';
+          else if (mappedDemand === 'low') mappedDemand = 'high';
+
           return (
             <div
               key={dayData.date}
-              className={`calendar-cell demand-${dayData.demandLevel} ${isSelected ? 'selected' : ''}`}
+              className={`calendar-cell demand-${mappedDemand} ${isSelected ? 'selected' : ''}`}
               onClick={() => onDateSelect(dayData.date)}
             >
               <div className="cell-date">{dateNum}</div>

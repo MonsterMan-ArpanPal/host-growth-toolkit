@@ -14,8 +14,10 @@ from pydantic import BaseModel
 import uvicorn
 
 from pricing.pricing_engine import PricingEngine, PricingRecommendation
+from whatsapp_router import router as whatsapp_router
 
 app = FastAPI(title="Wayzyy Pricing API")
+app.include_router(whatsapp_router)
 
 # Add CORS middleware
 app.add_middleware(
@@ -53,6 +55,21 @@ class RecommendRequest(BaseModel):
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+
+@app.get("/api/properties")
+def list_properties():
+    """Return the list of known demo properties for the frontend property selector."""
+    result = []
+    for prop_id, prop in DEMO_PROPERTIES.items():
+        result.append({
+            "id": prop_id,
+            "name": prop.get("host_neighbourhood", prop_id),
+            "address": f"{prop.get('host_neighbourhood', 'London')}, London",
+            "minPrice": 50,
+            "maxPrice": 1000,
+        })
+    return result
+
 
 @app.post("/api/pricing/recommend")
 def recommend_price(req: RecommendRequest):

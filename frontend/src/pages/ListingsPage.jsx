@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getProperties } from '../api/pricing';
 import HealthRing from '../components/listings/HealthRing';
-import { AlertTriangle, Camera, Edit3, RefreshCw, Check } from 'lucide-react';
+import { AlertTriangle, Camera, Edit3, RefreshCw, Check, Plus } from 'lucide-react';
 import './ListingsPage.css';
 
 export default function ListingsPage() {
+  const navigate = useNavigate();
   const [properties, setProperties] = useState([]);
   const [selectedPropertyId, setSelectedPropertyId] = useState('');
   const [loading, setLoading] = useState(true);
@@ -87,15 +89,21 @@ export default function ListingsPage() {
           <h1 className="page-title">Listing Optimization</h1>
           <p className="page-subtitle">AI-driven audit to maximize your booking conversion</p>
         </div>
-        <select 
-          className="property-selector"
-          value={selectedPropertyId}
-          onChange={(e) => setSelectedPropertyId(e.target.value)}
-        >
-          {properties.map(p => (
-            <option key={p.id} value={p.id}>{p.name}</option>
-          ))}
-        </select>
+        <div className="listings-header-actions">
+          <button className="btn-create-listing" onClick={() => navigate('/dashboard/listings/new')}>
+            <Plus size={18} />
+            Create New Listing
+          </button>
+          <select 
+            className="property-selector"
+            value={selectedPropertyId}
+            onChange={(e) => setSelectedPropertyId(e.target.value)}
+          >
+            {properties.map(p => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+        </div>
       </header>
 
       {loading || !healthData ? (
@@ -114,6 +122,12 @@ export default function ListingsPage() {
               <p style={{ marginTop: 'var(--sp-2)', fontSize: 'var(--text-sm)', color: 'rgba(255,255,255,0.7)' }}>
                 Your listing is performing better than {healthData.overall - 12}% of properties in the area.
               </p>
+              <div className="completeness-badge">
+                <span className="completeness-label">Profile Completeness</span>
+                <span className="completeness-value">
+                  {healthData.overall >= 85 ? 'Complete' : healthData.overall >= 60 ? 'Almost There' : 'Needs Work'}
+                </span>
+              </div>
             </div>
             
             <div className="glass-card health-breakdown">
