@@ -1,177 +1,134 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getProperties } from '../api/pricing';
-import HealthRing from '../components/listings/HealthRing';
-import { AlertTriangle, Camera, Edit3, RefreshCw, Check, Plus } from 'lucide-react';
+import { getListings } from '../api/listings';
+import {
+  Plus, Users, BedDouble, Bath, MapPin, Home,
+  Image as ImageIcon, Loader2, Sparkles, AlertTriangle
+} from 'lucide-react';
 import './ListingsPage.css';
 
 export default function ListingsPage() {
   const navigate = useNavigate();
-  const [properties, setProperties] = useState([]);
-  const [selectedPropertyId, setSelectedPropertyId] = useState('');
+  const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
-  
-  // Mock listing health data
-  const [healthData, setHealthData] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    getProperties().then(props => {
-      setProperties(props);
-      if (props.length > 0) setSelectedPropertyId(props[0].id);
-    });
+    let mounted = true;
+    getListings()
+      .then(data => {
+        if (!mounted) return;
+        setListings(data);
+        setError(null);
+      })
+      .catch(err => {
+        if (!mounted) return;
+        setError(err.message || 'Failed to load listings.');
+      })
+      .finally(() => mounted && setLoading(false));
+    return () => { mounted = false; };
   }, []);
 
-  useEffect(() => {
-    if (!selectedPropertyId) return;
-    setLoading(true);
-    
-    // Simulate API delay fetching health data
-    setTimeout(() => {
-      // Generate some deterministic mock data based on ID
-      const isGood = selectedPropertyId === 'prop_001';
-      
-      setHealthData({
-        overall: isGood ? 92 : 78,
-        photoQuality: isGood ? 95 : 65,
-        description: isGood ? 88 : 80,
-        pricing: isGood ? 94 : 85,
-        alerts: isGood ? [] : [
-          {
-            id: 1,
-            type: 'photo',
-            title: 'Living Room Photo Underexposed',
-            description: 'The primary living room photo appears dark and may not attract guests. Consider re-shooting in daylight.',
-            icon: <Camera size={20} />
-          },
-          {
-            id: 2,
-            type: 'description',
-            title: 'Missing Amenities in Title',
-            description: 'Top performing listings in your area highlight "Free Parking". host It AI can rewrite your title to include this.',
-            icon: <Edit3 size={20} />
-          }
-        ]
-      });
-      setLoading(false);
-    }, 400);
-  }, [selectedPropertyId]);
-
-  const renderProgressBar = (label, value) => {
-    let fillClass = 'fill-good';
-    if (value < 60) fillClass = 'fill-poor';
-    else if (value < 85) fillClass = 'fill-warn';
-    
-    return (
-      <div className="progress-item">
-        <div className="progress-header">
-          <span>{label}</span>
-          <span>{value}%</span>
-        </div>
-        <div className="progress-bar-bg">
-          <div className="progress-bar-fill ${fillClass}" style={{ width: `${value}%` }}></div>
-        </div>
-      </div>
-    );
-  };
-
-  const removeAlert = (id) => {
-    setHealthData(prev => ({
-      ...prev,
-      alerts: prev.alerts.filter(a => a.id !== id),
-      overall: Math.min(100, prev.overall + 5), // bump score optimistically
-    }));
-  };
+  const renderSpecChip = (icon, label) => (
+    <div className="listing-spec">
+      {icon}
+      <span>{label}</span>
+    </div>
+  );
 
   return (
     <div className="listings-page animate-fade-in-up">
       <header className="listings-header">
         <div>
-          <h1 className="page-title">Listing Optimization</h1>
-          <p className="page-subtitle">AI-driven audit to maximize your booking conversion</p>
+          <h1 className="page-title">Your Listings</h1>
+          <p className="page-subtitle">Every property you create appears here, with its specs and photos</p>
         </div>
         <div className="listings-header-actions">
           <button className="btn-create-listing" onClick={() => navigate('/dashboard/listings/new')}>
             <Plus size={18} />
             Create New Listing
           </button>
-          <select 
-            className="property-selector"
-            value={selectedPropertyId}
-            onChange={(e) => setSelectedPropertyId(e.target.value)}
-          >
-            {properties.map(p => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
         </div>
       </header>
 
-      {loading || !healthData ? (
-        <div className="health-dashboard skeleton-container">
-          <div className="skeleton" style={{ height: '300px' }}></div>
-          <div className="skeleton" style={{ height: '300px' }}></div>
+      {loading ? (
+        <div className="listings-grid skeleton-container">
+          <div className="skeleton" style={{ height: '320px' }}></div>
+          <div className="skeleton" style={{ height: '320px' }}></div>
+          <div className="skeleton" style={{ height: '320px' }}></div>
+        </div>
+      ) : error ? (
+        <div className="glass-card listings-empty">
+          <AlertTriangle size={40} color="#fbbf24" />
+          <h3>Couldn't load listings</h3>
+          <p>{error}</p>
+        </div>
+      ) : listings.length === 0 ? (
+        <div className="glass-card listings-empty">
+          <Home size={48} color="rgba(255,255,255,0.4)" />
+          <h3>No listings yet</h3>
+          <p>Create your first listing with Wayzyy AI and it will show up here.</p>
+          <button className="btn-create-listing" onClick={() => navigate('/dashboard/listings/new')}>
+            <Sparkles size={18} />
+            Create Listing
+          </button>
         </div>
       ) : (
-        <>
-          <div className="health-dashboard">
-            <div className="glass-card health-score-container">
-              <HealthRing score={healthData.overall} />
-              <div className="health-status-text">
-                {healthData.overall >= 90 ? 'Excellent' : healthData.overall >= 75 ? 'Needs Improvement' : 'Poor'}
-              </div>
-              <p style={{ marginTop: 'var(--sp-2)', fontSize: 'var(--text-sm)', color: 'rgba(255,255,255,0.7)' }}>
-                Your listing is performing better than {healthData.overall - 12}% of properties in the area.
-              </p>
-              <div className="completeness-badge">
-                <span className="completeness-label">Profile Completeness</span>
-                <span className="completeness-value">
-                  {healthData.overall >= 85 ? 'Complete' : healthData.overall >= 60 ? 'Almost There' : 'Needs Work'}
-                </span>
-              </div>
-            </div>
-            
-            <div className="glass-card health-breakdown">
-              <h3>Score Breakdown</h3>
-              {renderProgressBar('Photo Quality', healthData.photoQuality)}
-              {renderProgressBar('Description Completeness', healthData.description)}
-              {renderProgressBar('Pricing Competitiveness', healthData.pricing)}
-              
-              <button className="btn-secondary" style={{ marginTop: 'var(--sp-4)', width: '100%', display: 'flex', justifyContent: 'center', gap: 'var(--sp-2)' }}>
-                <RefreshCw size={16} /> Re-scan Listing
-              </button>
-            </div>
-          </div>
-
-          <div className="ai-recommendations">
-            <h3><AlertTriangle size={24} color="#fbbf24" /> AI Recommendations</h3>
-            
-            {healthData.alerts.length === 0 ? (
-              <div className="glass-card" style={{ textAlign: 'center', padding: 'var(--sp-8)' }}>
-                <Check size={48} color="#34d399" style={{ marginBottom: 'var(--sp-4)' }} />
-                <h4>Looking Good!</h4>
-                <p style={{ color: 'rgba(255,255,255,0.7)' }}>host It AI found no immediate issues with your listing.</p>
-              </div>
-            ) : (
-              healthData.alerts.map(alert => (
-                <div key={alert.id} className="alert-box">
-                  <div className="alert-icon">{alert.icon}</div>
-                  <div className="alert-content">
-                    <h4>{alert.title}</h4>
-                    <p>{alert.description}</p>
-                    <div className="alert-actions">
-                      {alert.type === 'photo' ? (
-                        <button className="btn-action" onClick={() => removeAlert(alert.id)}>Upload New Photo</button>
-                      ) : (
-                        <button className="btn-action" onClick={() => removeAlert(alert.id)}>Apply AI Rewrite</button>
-                      )}
-                      <button className="btn-secondary" onClick={() => removeAlert(alert.id)}>Dismiss</button>
-                    </div>
+        <div className="listings-grid">
+          {listings.map(listing => (
+            <div key={listing.id} className="listing-card glass-card animate-fade-in-up">
+              <div className="listing-card-photo">
+                {listing.photos && listing.photos.length > 0 ? (
+                  <img src={listing.photos[0]} alt={listing.name} />
+                ) : (
+                  <div className="listing-card-photo-placeholder">
+                    <ImageIcon size={40} />
                   </div>
+                )}
+                <span className="listing-card-type">{listing.property_type || 'Property'}</span>
+              </div>
+
+              <div className="listing-card-body">
+                <h3 className="listing-card-title">{listing.name}</h3>
+
+                {listing.location && (
+                  <p className="listing-card-location">
+                    <MapPin size={14} />
+                    {listing.location}
+                  </p>
+                )}
+
+                <div className="listing-card-specs">
+                  {renderSpecChip(<Users size={15} />, `${listing.accommodates} guests`)}
+                  {renderSpecChip(<BedDouble size={15} />, `${listing.bedrooms} BR`)}
+                  {renderSpecChip(<BedDouble size={15} />, `${listing.beds} beds`)}
+                  {renderSpecChip(<Bath size={15} />, `${listing.bathrooms} BA`)}
                 </div>
-              ))
-            )}
-          </div>
-        </>
+
+                {listing.amenities && listing.amenities.length > 0 && (
+                  <div className="listing-card-amenities">
+                    {listing.amenities.slice(0, 6).map((a, i) => (
+                      <span key={i} className="amenity-chip">{a}</span>
+                    ))}
+                  </div>
+                )}
+
+                {listing.highlights && listing.highlights.length > 0 && (
+                  <ul className="listing-card-highlights">
+                    {listing.highlights.slice(0, 3).map((h, i) => (
+                      <li key={i}>{h}</li>
+                    ))}
+                  </ul>
+                )}
+
+                <div className="listing-card-photos-count">
+                  <ImageIcon size={14} />
+                  {listing.photos?.length || 0} photo{(listing.photos?.length || 0) === 1 ? '' : 's'}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

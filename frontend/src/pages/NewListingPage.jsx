@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { generateListing } from '../api/listings';
+import { generateListing, saveListing } from '../api/listings';
 import {
   Upload, X, Sparkles, AlertTriangle, Check, Camera,
   MapPin, Home, Users, BedDouble, Bath, Save, ArrowLeft,
@@ -45,6 +45,7 @@ export default function NewListingPage() {
 
   // Save state
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   // --- Form handlers ---
   const handleChange = (field, value) => {
@@ -114,10 +115,20 @@ export default function NewListingPage() {
     }
   };
 
-  // --- Save (placeholder) ---
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => navigate('/dashboard/listings'), 1500);
+  // --- Save the generated listing (photos + specs) to the NoSQL store ---
+  const handleSave = async () => {
+    if (!result || saved) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await saveListing(photos, form, result);
+      setSaved(true);
+      setTimeout(() => navigate('/dashboard/listings'), 1500);
+    } catch (err) {
+      setError(err.message || 'Save failed. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -369,11 +380,20 @@ export default function NewListingPage() {
               )}
 
               {/* Save Button */}
-              <button className="nl-save-btn" onClick={handleSave} disabled={saved}>
+              <button
+                className="nl-save-btn"
+                onClick={handleSave}
+                disabled={saved || saving}
+              >
                 {saved ? (
                   <>
                     <Check size={18} />
                     Saved! Redirecting...
+                  </>
+                ) : saving ? (
+                  <>
+                    <Loader2 size={18} className="nl-spin" />
+                    Saving Listing...
                   </>
                 ) : (
                   <>

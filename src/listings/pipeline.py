@@ -5,9 +5,10 @@ Auto-Listing Generator Pipeline
 Three-stage pipeline that turns uploaded property photos + manual facts
 into an Airbnb-style listing.
 
-Stage 1 – Photo QC (PyIQA)
-    Scores each image for perceptual quality and sharpness.
-    Flags blurry / low-quality photos before they reach the LLM.
+Stage 1 – Photo QC (lightweight)
+    Optional blur detection via OpenCV variance-of-Laplacian. No heavy
+    PyTorch / PyIQA dependency — photos without OpenCV are assumed good.
+    Flags blurry photos before they reach the LLM.
 
 Stage 2 – Vision Feature Extraction (Qwen 2.5-VL via API)
     Sends the *good* photos to a vision-language model and asks for
@@ -45,8 +46,7 @@ WRITER_MODEL = os.getenv("WRITER_MODEL", "openai/gpt-4o-mini")
 API_BASE_URL = os.getenv("OPENAI_API_BASE", os.getenv("OPENROUTER_API_BASE", "https://openrouter.ai/api/v1"))
 API_KEY = os.getenv("OPENROUTER_API_KEY", os.getenv("OPENAI_API_KEY", ""))
 
-# PyIQA thresholds
-QUALITY_MIN_SCORE = float(os.getenv("PHOTO_QUALITY_MIN", "40"))
+# Lightweight QC threshold (variance-of-Laplacian blur proxy)
 BLUR_MAX_SCORE = float(os.getenv("PHOTO_BLUR_MAX", "50"))
 
 
@@ -87,55 +87,20 @@ class ListingResult:
 # ---------------------------------------------------------------------------
 def run_photo_qc(image_paths: List[str]) -> List[PhotoVerdict]:
     """
-    Score each image with PyIQA and flag quality / blur issues.
+    Lightweight photo QC without heavy dependencies.
 
-    Uses MUSIQ for quality (higher = better) and a variance-of-Laplacian
-    proxy for blur (higher = sharper, so we invert for a "blur score"
-    where higher = blurrier).
+    PyIQA (which pulls in PyTorch) is intentionally NOT used. Instead we
+    use a variance-of-Laplacian blur proxy via OpenCV when it is available;
+    otherwise every photo is assumed good. Blur score is inverted so that
+    higher = blurrier (threshold comparison stays simple).
 
     Returns a list of PhotoVerdict objects.
     """
-    try:
-        import pyiqa
-        import torch
-    except ImportError:
-        logger.warning("pyiqa not installed — skipping photo QC, marking all as good")
-        return [
-            PhotoVerdict(
-                filename=Path(p).name,
-                quality_score=100.0,
-                blur_score=0.0,
-                is_good=True,
-                flags=["QC skipped (pyiqa not installed)"],
-            )
-            for p in image_paths
-        ]
-
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-
-    try:
-        quality_metric = pyiqa.create_metric("musiq", device=device)
-    except Exception:
-        quality_metric = None
-        logger.warning("Could not load MUSIQ model — quality scores will be default")
-
     verdicts: List[PhotoVerdict] = []
     for path in image_paths:
         fname = Path(path).name
         flags: List[str] = []
 
-        # Quality score (MUSIQ, 0-100)
-        quality_score = 80.0
-        if quality_metric is not None:
-            try:
-                from PIL import Image as PILImage
-                img = PILImage.open(path).convert("RGB")
-                with torch.no_grad():
-                    quality_score = float(quality_metric(img).item())
-            except Exception as e:
-                logger.warning(f"Quality scoring failed for {fname}: {e}")
-
-        # Blur score (variance of Laplacian — higher = sharper)
         blur_score = 0.0
         try:
             import cv2
@@ -143,17 +108,16 @@ def run_photo_qc(image_paths: List[str]) -> List[PhotoVerdict]:
 
             img_cv = cv2.imread(str(path), cv2.IMREAD_GRAYSCALE)
             if img_cv is not None:
-                blur_score = float(cv2.Laplacian(img_cv, cv2.CV_64F).var())
+                raw_blur = float(cv2.Laplacian(img_cv, cv2.CV_64F).var())
+                blur_score = max(0.0, 1000.0 - raw_blur)  # 0 = sharp, 1000 = very blurry
         except ImportError:
-            logger.warning("opencv-python not installed — blur detection skipped")
-            blur_score = 500.0  # assume not blurry
+            logger.warning("opencv-python not installed — blur detection skipped, assuming sharp")
+            blur_score = 0.0  # assume sharp
+        except Exception as e:
+            logger.warning(f"Blur detection failed for {fname}: {e}")
+            blur_score = 0.0  # assume sharp
 
-        # Invert so higher = blurrier (threshold comparison is simpler)
-        blur_metric = max(0, 1000.0 - blur_score)  # 0 = sharp, 1000 = very blurry
-
-        if quality_score < QUALITY_MIN_SCORE:
-            flags.append("Low quality")
-        if blur_metric > BLUR_MAX_SCORE:
+        if blur_score > BLUR_MAX_SCORE:
             flags.append("Blurry")
 
         is_good = len(flags) == 0
@@ -163,8 +127,8 @@ def run_photo_qc(image_paths: List[str]) -> List[PhotoVerdict]:
         verdicts.append(
             PhotoVerdict(
                 filename=fname,
-                quality_score=round(quality_score, 1),
-                blur_score=round(blur_metric, 1),
+                quality_score=100.0,
+                blur_score=round(blur_score, 1),
                 is_good=is_good,
                 flags=flags,
             )

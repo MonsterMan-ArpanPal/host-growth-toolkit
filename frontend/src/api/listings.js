@@ -48,3 +48,48 @@ export async function generateListing(files, manualData) {
 
   return response.json();
 }
+
+/**
+ * Persist a generated listing into the NoSQL store along with its photos.
+ *
+ * @param {File[]} files - The photo File objects used during creation
+ * @param {Object} manualData - The form fields the host filled in
+ * @param {Object} listingResult - The AI-generated listing (title, highlights, description, verdicts)
+ * @returns {Promise<Object>} { success, property_id }
+ */
+export async function saveListing(files, manualData, listingResult) {
+  const formData = new FormData();
+
+  files.forEach(file => {
+    formData.append('files', file);
+  });
+
+  formData.append('manual_data', JSON.stringify(manualData));
+  formData.append('listing_result', JSON.stringify(listingResult));
+
+  const response = await fetch('/api/listings/save', {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+    throw new Error(error.detail || `Save failed (${response.status})`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Fetch all listings saved in the NoSQL store.
+ * @returns {Promise<Array>} Array of listing documents (id, name, specs, photos, ...)
+ */
+export async function getListings() {
+  const response = await fetch('/api/listings');
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+    throw new Error(error.detail || `Fetch listings failed (${response.status})`);
+  }
+  const data = await response.json();
+  return data.listings || [];
+}

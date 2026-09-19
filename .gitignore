@@ -1,6 +1,10 @@
 data/raw/
 data/external/
 
+# Runtime NoSQL store + uploaded listing photos
+data/demo/listings.json
+data/demo/listings_photos/
+
 __pycache__/
 .ipynb_checkpoints/
 node_modules/
