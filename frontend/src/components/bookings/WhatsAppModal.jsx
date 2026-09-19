@@ -45,7 +45,7 @@ export default function WhatsAppModal({ booking, onClose }) {
         <div style={{ padding: 'var(--sp-4) var(--sp-6)', borderTop: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.3)', display: 'flex', gap: 'var(--sp-3)' }}>
            <input 
              type="text" 
-             placeholder="Wayzyy AI is managing this conversation..." 
+             placeholder="host It AI is managing this conversation..." 
              disabled 
              style={{ flex: 1, padding: 'var(--sp-2) var(--sp-3)', borderRadius: 'var(--radius-full)', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: 'var(--white)', fontSize: 'var(--text-sm)' }}
            />

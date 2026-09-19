@@ -9,7 +9,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    document.title = 'Dashboard | Wayzyy';
+    document.title = 'Dashboard | host It';
     
     const loadDashboardData = async () => {
       try {

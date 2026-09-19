@@ -33,7 +33,7 @@ const Landing = () => {
       {/* Navigation */}
       <nav className="landing-nav">
         <div className="nav-container">
-          <Link to="/" className="nav-logo">wayzyy</Link>
+          <Link to="/" className="nav-logo">host It</Link>
           <div className="nav-links">
             <a href="#features">Features</a>
             <a href="#pricing">Pricing</a>
@@ -50,7 +50,7 @@ const Landing = () => {
         <div className="hero-container animate-fade-in-up">
           <h1 className="hero-headline">Price smarter. Host better.</h1>
           <p className="hero-subheadline">
-            Wayzyy gives independent hosts the pricing intelligence and tools that used to be reserved for large property managers.
+            host It gives independent hosts the pricing intelligence and tools that used to be reserved for large property managers.
           </p>
           <div className="hero-ctas stagger-1">
             <Link to="/signup" className="btn-primary">Start Free</Link>
@@ -71,7 +71,7 @@ const Landing = () => {
               </div>
               <h3 className="feature-title">Dynamic Pricing</h3>
               <p className="feature-desc">
-                Smart pricing recommendations based on local demand, events, and comparable listings. Set it and let Wayzyy watch the market for you.
+                Smart pricing recommendations based on local demand, events, and comparable listings. Set it and let host It watch the market for you.
               </p>
             </div>
             
@@ -139,7 +139,7 @@ const Landing = () => {
       {/* Footer */}
       <footer className="landing-footer">
         <div className="footer-container">
-          <p className="footer-copy">© 2026 Wayzyy</p>
+          <p className="footer-copy">© 2026 host It</p>
           <div className="footer-links">
             <Link to="/privacy">Privacy</Link>
             <Link to="/terms">Terms</Link>

@@ -55,7 +55,7 @@ const Auth = () => {
     <div className="auth-page">
       <div className="auth-card animate-fade-in-up">
         <div className="auth-header">
-          <Link to="/" className="auth-logo">wayzyy</Link>
+          <Link to="/" className="auth-logo">host It</Link>
           <h1 className="auth-title">
             {isLogin ? 'Welcome back' : 'Create your account'}
           </h1>

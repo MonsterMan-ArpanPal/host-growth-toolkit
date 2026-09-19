@@ -78,7 +78,7 @@ export default function PricingControls({ recommendation, property, selectedDate
       </div>
 
       <div className="controls-footer">
-        Wayzyy recommends. You decide.
+        host It recommends. You decide.
       </div>
     </div>
   );
