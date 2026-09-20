@@ -406,6 +406,7 @@ class SignupRequest(BaseModel):
     last_name: str
     email: str
     password: str
+    phone: Optional[str] = None
 
 
 class LoginRequest(BaseModel):
@@ -444,11 +445,15 @@ def signup(req: SignupRequest):
     if req.email in USERS:
         raise HTTPException(status_code=400, detail="User already exists")
 
+    from whatsapp_service import normalize_phone_number
+    normalized_phone = normalize_phone_number(req.phone) if req.phone else None
+
     USERS[req.email] = {
         "first_name": req.first_name,
         "last_name": req.last_name,
         "email": req.email,
         "password": req.password,
+        "phone": normalized_phone,
         "property_id": None,
     }
     save_users()
