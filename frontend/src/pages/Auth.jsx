@@ -12,6 +12,7 @@ const Auth = () => {
     firstName: '',
     lastName: '',
     email: '',
+    phone: '',
     password: ''
   });
   const [error, setError] = useState(null);
@@ -35,6 +36,7 @@ const Auth = () => {
           first_name: formData.firstName,
           last_name: formData.lastName,
           email: formData.email,
+          phone: formData.phone,
           password: formData.password
         });
       }
@@ -105,6 +107,21 @@ const Auth = () => {
               required
             />
           </div>
+
+          {!isLogin && (
+            <div className="form-group">
+              <label htmlFor="phone">Phone number (WhatsApp)</label>
+              <input
+                type="tel"
+                id="phone"
+                name="phone"
+                placeholder="+44 7123 456789"
+                value={formData.phone}
+                onChange={handleChange}
+                required
+              />
+            </div>
+          )}
 
           <div className="form-group">
             <label htmlFor="password">Password</label>
