@@ -314,6 +314,9 @@ Open your browser and navigate to **`http://localhost:5173`** to access the comp
 ## 👥 Authors & Acknowledgments
 
 * **Lead Development:** [Saksham U.](https://github.com/)
+                        Arpan Pal
+                        Mohit Sake
+                        Srishti Gupta
 * **Datasets:** London Market Data sourced from Inside Airbnb.
 * **Model Frameworks:** Built with Scikit-Learn, FastAPI, React, and OpenRouter AI.
 
