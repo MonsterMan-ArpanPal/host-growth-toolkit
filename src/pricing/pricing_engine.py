@@ -56,7 +56,7 @@ _THIS_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = _THIS_DIR.parent.parent
 
 # Default paths (relative to project root)
-DEFAULT_MODEL_PATH = PROJECT_ROOT / "models" / "best_pricing_model_v1_2.pkl"
+DEFAULT_MODEL_PATH = PROJECT_ROOT / "models" / "best_pricing_model_v1_2.pkl.gz"
 DEFAULT_DATE_FEATURES_PATH = (
     PROJECT_ROOT / "notebooks" / "data" / "processed" / "london_date_features.csv"
 )
