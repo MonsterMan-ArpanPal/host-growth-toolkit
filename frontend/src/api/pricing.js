@@ -17,8 +17,12 @@ import {
 const delay = (ms = 300) =>
   new Promise(resolve => setTimeout(resolve, 150 + Math.random() * ms));
 
+// Base URL for the backend API – uses VITE_API_URL in production (Render),
+// falls back to localhost for local development.
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 export async function login(email, password) {
-  const res = await fetch(`\${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/auth/login', {
+  const res = await fetch(`${API_BASE}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password })
@@ -33,7 +37,7 @@ export async function login(email, password) {
 }
 
 export async function signup(userData) {
-  const res = await fetch(`\${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/auth/signup', {
+  const res = await fetch(`${API_BASE}/api/auth/signup`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(userData)
@@ -51,7 +55,7 @@ export async function setupProperty(propertyData) {
   const user = JSON.parse(localStorage.getItem('wayzyy_user') || '{}');
   if (!user.email) throw new Error('Not logged in');
   
-  const res = await fetch(`\${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/properties', {
+  const res = await fetch(`${API_BASE}/api/properties`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email: user.email, ...propertyData })
@@ -79,7 +83,7 @@ export async function getProperties() {
   const query = user.email ? `?email=${encodeURIComponent(user.email)}` : '';
   // Always prefer the backend list for the signed-in host.
   try {
-    const res = await fetch(`\${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/properties${query}`);
+    const res = await fetch(`${API_BASE}/api/properties${query}`);
     if (res.ok) {
       const data = await res.json();
       // An empty successful response means this account has no properties;
@@ -173,7 +177,7 @@ export async function getEarnings() {
 }
 
 // ─── Pricing ────────────────────────────────────────────────────
-const PRICING_API_URL = `\${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/pricing/recommend';
+const PRICING_API_URL = `${API_BASE}/api/pricing/recommend`;
 const PRICING_RETRY_ATTEMPTS = 3;
 const PRICING_RETRY_DELAY_MS = 300;
 const CALENDAR_REQUEST_CONCURRENCY = 5;
