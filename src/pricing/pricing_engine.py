@@ -315,6 +315,54 @@ class PricingEngine:
         
         return rec
 
+    def recommend_calendar(
+        self,
+        property_features: Dict[str, Any],
+        start_date: Union[str, date, datetime],
+        days: int = 35,
+    ) -> List[Dict[str, Any]]:
+        """
+        Generate dynamic pricing recommendations for a sequence of days.
+        Optimized to run feature transformations, base-price prediction, and
+        comparable evaluation exactly ONCE, completing 30+ days in milliseconds.
+        """
+        from datetime import timedelta
+        from features.property_transformer import transform_property_features
+        from pricing.comparables import get_comparables
+
+        # Evaluate invariant base features once
+        transformed_features = transform_property_features(property_features)
+        base_price = self._predict_base_price(transformed_features)
+
+        target_id = property_features.get("id")
+        comps = get_comparables(property_features, target_id)
+
+        curr_date = self._parse_date(start_date)
+        calendar_results: List[Dict[str, Any]] = []
+
+        for i in range(days):
+            target_d = curr_date + timedelta(days=i)
+            date_info = self._lookup_date(target_d)
+            rec = self._apply_adjustment(base_price, date_info, target_d, comps)
+
+            calendar_results.append({
+                "date": target_d.isoformat(),
+                "recommended_price": round(rec.recommended_price, 2),
+                "base_price": round(rec.base_price, 2),
+                "price_range": (
+                    round(rec.price_range[0], 2),
+                    round(rec.price_range[1], 2),
+                ),
+                "market_pressure_score": round(rec.market_pressure_score, 2),
+                "demand_level": rec.demand_level,
+                "adjustment_pct": round(rec.adjustment_pct, 2),
+                "event_active": rec.event_active,
+                "event_name": rec.event_name,
+                "event_type": rec.event_type,
+            })
+
+        return calendar_results
+
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------

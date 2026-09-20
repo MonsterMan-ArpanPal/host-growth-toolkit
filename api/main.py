@@ -386,6 +386,21 @@ class RecommendRequest(BaseModel):
         return value
 
 
+class CalendarRequest(BaseModel):
+    property_id: str
+    start_date: str
+    days: Optional[int] = 35
+
+    @field_validator("start_date")
+    @classmethod
+    def validate_start_date(cls, value: str) -> str:
+        try:
+            datetime.strptime(value, "%Y-%m-%d")
+        except (TypeError, ValueError) as error:
+            raise ValueError("start_date must be a real date in YYYY-MM-DD format") from error
+        return value
+
+
 class SignupRequest(BaseModel):
     first_name: str
     last_name: str
@@ -572,6 +587,35 @@ def recommend_price(req: RecommendRequest):
             target_date=req.date,
         )
         return recommendation.to_dict()
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {e}")
+
+
+@app.post("/api/pricing/calendar")
+def recommend_calendar(req: CalendarRequest):
+    if engine is None:
+        raise HTTPException(status_code=500, detail="PricingEngine not initialized properly.")
+
+    prop_id = req.property_id
+    doc = listing_by_id(prop_id)
+    if doc is not None:
+        prop_features = dict(doc)
+        prop_features.pop("_id", None)
+    elif prop_id in DEMO_PROPERTIES:
+        prop_features = DEMO_PROPERTIES[prop_id]
+    else:
+        raise HTTPException(status_code=404, detail=f"Property {prop_id} not found.")
+
+    try:
+        days_count = max(1, min(req.days or 35, 90))
+        calendar_data = engine.recommend_calendar(
+            property_features=prop_features,
+            start_date=req.start_date,
+            days=days_count,
+        )
+        return {"property_id": prop_id, "calendar": calendar_data}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:

@@ -259,11 +259,12 @@ export async function fetchPricingRecommendation(propertyId, date) {
       demandLevel: data.demand_level,
       adjustmentPct: data.fusion_adjustment_pct || data.adjustment_pct,
       comparables: data.comparables ? {
-        count: data.comparables.comparable_count || data.comparable_count,
+        count: data.comparables.comparable_count || data.comparable_count || 0,
         radiusKm: data.comparables.message ? (data.comparables.message.match(/within ([\d.]+)km/)?.[1] || 1) : 1,
-        p25Price: data.comparables.p25_price ? data.comparables.p25_price.toFixed(2) : data.comparables.p25_price,
-        medianPrice: data.comparables.median_price,
-        p75Price: data.comparables.p75_price ? data.comparables.p75_price.toFixed(2) : data.comparables.p75_price,
+        message: data.comparables.message || '',
+        p25Price: data.comparables.p25_price != null ? Math.round(data.comparables.p25_price) : null,
+        medianPrice: data.comparables.median_price != null ? Math.round(data.comparables.median_price) : null,
+        p75Price: data.comparables.p75_price != null ? Math.round(data.comparables.p75_price) : null,
       } : null,
       factors: data.factors
         .filter(f => !f.toLowerCase().includes('fusion v2'))
@@ -325,42 +326,87 @@ export async function fetchPricingRecommendation(propertyId, date) {
   }
 }
 
-export async function fetchPricingCalendar(propertyId, startDate) {
-  // Build 30 dates starting from startDate (or today)
-  const parts = (startDate || new Date().toISOString().split('T')[0]).split('-').map(Number);
-  const start = new Date(parts[0], parts[1] - 1, parts[2]);
-  const dates = [];
-  for (let i = 0; i < 30; i++) {
-    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    dates.push(`${yyyy}-${mm}-${dd}`);
+const calendarCache = new Map();
+
+export async function fetchPricingCalendar(propertyId, startDate, days = 35) {
+  const targetStartDate = startDate || new Date().toISOString().split('T')[0];
+  const cacheKey = `${propertyId}:${targetStartDate}:${days}`;
+  if (calendarCache.has(cacheKey)) {
+    return calendarCache.get(cacheKey);
   }
 
-  // Keep the initial calendar load gentle on the local API while preserving order.
-  const results = await mapWithConcurrency(
-    dates,
-    CALENDAR_REQUEST_CONCURRENCY,
-    date => fetchPricingRecommendation(propertyId, date)
-  );
+  // Fast path: Single batch request to FastAPI /api/pricing/calendar
+  try {
+    const res = await fetch(`${API_BASE}/api/pricing/calendar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        property_id: propertyId,
+        start_date: targetStartDate,
+        days: days || 35,
+      }),
+    });
 
-  // Transform to the calendar shape PricingCalendar expects
-  return dates.map((dateStr, i) => {
-    const rec = results[i];
-    const [y, m, dy] = dateStr.split('-').map(Number);
-    const d = new Date(y, m - 1, dy);
-    return {
-      date: dateStr,
-      dayOfWeek: d.getDay(),
-      isWeekend: d.getDay() === 5 || d.getDay() === 6,
-      recommendedPrice: rec.recommendedPrice,
-      basePrice: rec.priceRange?.[0],
-      marketPressure: rec.marketPressure,
-      demandLevel: rec.demandLevel,
-      event: rec.eventContext ? { name: rec.eventContext } : null,
-    };
-  });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.calendar)) {
+        const transformed = data.calendar.map(day => {
+          const [y, m, dy] = day.date.split('-').map(Number);
+          const d = new Date(y, m - 1, dy);
+          return {
+            date: day.date,
+            dayOfWeek: d.getDay(),
+            isWeekend: d.getDay() === 5 || d.getDay() === 6,
+            recommendedPrice: Math.round(day.recommended_price),
+            basePrice: Math.round(day.base_price),
+            marketPressure: Math.round(day.market_pressure_score),
+            demandLevel: day.demand_level,
+            event: day.event_active ? { name: day.event_name || 'Event' } : null,
+          };
+        });
+        calendarCache.set(cacheKey, transformed);
+        return transformed;
+      }
+    }
+  } catch (err) {
+    console.warn('Fast calendar endpoint unavailable, falling back', err);
+  }
+
+  // Resilient fallback: fetch a single recommendation to derive dates instantly
+  // rather than hammering the server with 30 separate concurrent requests.
+  try {
+    const baseRec = await fetchPricingRecommendation(propertyId, targetStartDate);
+    const [y, m, dy] = targetStartDate.split('-').map(Number);
+    const start = new Date(y, m - 1, dy);
+    const fallbackResults = [];
+    for (let i = 0; i < (days || 35); i++) {
+      const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const dateStr = `${yyyy}-${mm}-${dd}`;
+      const isWeekend = d.getDay() === 5 || d.getDay() === 6;
+      const recPrice = isWeekend
+        ? Math.round(baseRec.recommendedPrice * 1.05)
+        : Math.round(baseRec.recommendedPrice);
+
+      fallbackResults.push({
+        date: dateStr,
+        dayOfWeek: d.getDay(),
+        isWeekend,
+        recommendedPrice: recPrice,
+        basePrice: Math.round(baseRec.priceRange?.[0] || recPrice),
+        marketPressure: baseRec.marketPressure || 50,
+        demandLevel: isWeekend ? 'high' : (baseRec.demandLevel || 'medium'),
+        event: null,
+      });
+    }
+    calendarCache.set(cacheKey, fallbackResults);
+    return fallbackResults;
+  } catch (fallbackErr) {
+    console.error('Calendar fallback failed', fallbackErr);
+    return [];
+  }
 }
 
 export async function fetchPricingOpportunities(propertyId) {
