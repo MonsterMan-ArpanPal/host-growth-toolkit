@@ -76,7 +76,14 @@ def _download_media_attachment(media_url: str, phone: str) -> Optional[str]:
         auth = None
         twilio_sid = os.environ.get("TWILIO_ACCOUNT_SID")
         twilio_token = os.environ.get("TWILIO_AUTH_TOKEN")
-        if twilio_sid and twilio_token and "twilio.com" in media_url:
+        is_twilio_media = "twilio.com" in media_url
+        if is_twilio_media:
+            if not (twilio_sid and twilio_token):
+                logger.error(
+                    "[STAGE: PHOTO] Cannot download Twilio media: "
+                    "TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN are not configured"
+                )
+                return None
             auth = (twilio_sid, twilio_token)
 
         resp = requests.get(media_url, auth=auth, timeout=20)
@@ -118,18 +125,44 @@ async def whatsapp_webhook(
         )
         return Response(content=str(resp), media_type="application/xml")
 
-    # 2. Extract and download any incoming media attachments
+    # 2. Extract and download any incoming media attachments.  Read NumMedia
+    # from the submitted form as well because providers send it as a string.
+    # This keeps captioned media (for example, a photo with "DONE") on the
+    # same code path as media with no caption.
     media_paths: List[str] = []
-    if NumMedia and NumMedia > 0:
-        form_data = await request.form()
-        for i in range(NumMedia):
+    form_data = await request.form()
+    try:
+        num_media = int(form_data.get("NumMedia") or NumMedia or 0)
+    except (TypeError, ValueError):
+        logger.warning("[STAGE: PHOTO] Invalid NumMedia value: %r", form_data.get("NumMedia"))
+        num_media = 0
+
+    if num_media > 0:
+        failed_media_count = 0
+        for i in range(num_media):
             url_key = f"MediaUrl{i}"
             if url_key in form_data:
                 url_val = str(form_data[url_key])
                 saved_path = _download_media_attachment(url_val, normalized_phone)
                 if saved_path:
                     media_paths.append(saved_path)
-                    session_manager.add_photo_to_session(normalized_phone, saved_path)
+                else:
+                    failed_media_count += 1
+
+        # Do not let a failed download masquerade as a successfully received
+        # zero-photo message.  In particular, Twilio media URLs require the
+        # account SID and auth token to be configured on this backend.
+        if failed_media_count and not media_paths:
+            logger.error(
+                "[STAGE: PHOTO] Could not save any of %d incoming media attachment(s)",
+                failed_media_count,
+            )
+            resp = MessagingResponse()
+            resp.message(
+                "⚠️ I received your photo, but couldn't download it to your listing. "
+                "Please try again in a moment. If it keeps happening, contact Wayzyy support."
+            )
+            return Response(content=str(resp), media_type="application/xml")
 
     # 3. Process message through Action Handler
     try:

@@ -17,6 +17,7 @@ import json
 import logging
 import os
 import re
+import shutil
 import sys
 import uuid
 from datetime import datetime, timezone
@@ -267,6 +268,41 @@ def generate_listing_copy(
 # ---------------------------------------------------------------------------
 # Listing Persistence (reusing main.py logic & TinyDB)
 # ---------------------------------------------------------------------------
+def _publish_whatsapp_photos(
+    photo_paths: Optional[List[str]], prop_id: str, photos_root: Path
+) -> List[str]:
+    """Move staged WhatsApp images into a listing's publicly served directory."""
+    if not photo_paths:
+        return []
+
+    photos_root = photos_root.resolve()
+    listing_dir = photos_root / prop_id
+    published_urls: List[str] = []
+
+    for index, raw_path in enumerate(photo_paths, start=1):
+        source = Path(raw_path).resolve()
+        try:
+            source.relative_to(photos_root)
+        except ValueError:
+            logger.warning("[STAGE: PHOTO] Ignoring photo outside managed storage: %s", source)
+            continue
+
+        if not source.is_file():
+            logger.warning("[STAGE: PHOTO] Staged WhatsApp photo no longer exists: %s", source)
+            continue
+
+        # The webhook generates UUID names, but use a controlled public filename
+        # rather than exposing the WhatsApp staging directory in the listing URL.
+        suffix = source.suffix.lower() or ".jpg"
+        filename = f"whatsapp-{index}{suffix}"
+        destination = listing_dir / filename
+        listing_dir.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(source), str(destination))
+        published_urls.append(f"/media/listings/{prop_id}/{filename}")
+
+    return published_urls
+
+
 def create_and_save_listing(
     user_email: str,
     property_data: Dict[str, Any],
@@ -291,6 +327,9 @@ def create_and_save_listing(
             latitude, longitude = backend_main.coords_for_neighbourhood(host_neighbourhood)
 
         prop_id = f"prop_{uuid.uuid4().hex[:8]}"
+        published_photos = _publish_whatsapp_photos(
+            photo_paths, prop_id, backend_main.LISTINGS_PHOTOS_DIR
+        )
 
         accommodates = int(backend_main._as_float(property_data.get("accommodates", property_data.get("capacity_guests")), 2))
         bathrooms = float(backend_main._as_float(property_data.get("bathrooms"), 1))
@@ -331,7 +370,8 @@ def create_and_save_listing(
             "full_description": listing_draft.get("full_description", ""),
             "photo_verdicts": listing_draft.get("photo_verdicts", []),
             "vision_features": listing_draft.get("vision_features", []),
-            "photos": photo_paths or [],
+            # URLs are relative to the API origin and are consumable by the web UI.
+            "photos": published_photos,
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
 

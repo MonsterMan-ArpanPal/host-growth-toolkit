@@ -15,6 +15,7 @@ Tests:
 11. Stage-level error handling and resilience
 """
 
+import copy
 import os
 import sys
 from pathlib import Path
@@ -40,6 +41,7 @@ from whatsapp_service import (
     normalize_phone_number,
     calculate_property_price,
     create_and_save_listing,
+    _publish_whatsapp_photos,
 )
 from whatsapp_state import session_manager
 
@@ -47,6 +49,7 @@ from whatsapp_state import session_manager
 @pytest.fixture(autouse=True)
 def setup_test_environment():
     """Setup clean state before each test."""
+    original_users = copy.deepcopy(backend_main.USERS)
     # Ensure demo user has known phone
     if "sakshamu0610@gmail.com" in backend_main.USERS:
         backend_main.USERS["sakshamu0610@gmail.com"]["phone"] = "+447123456789"
@@ -54,6 +57,9 @@ def setup_test_environment():
     session_manager.reset_session("+447123456789")
     yield
     session_manager.reset_session("+447123456789")
+    backend_main.USERS.clear()
+    backend_main.USERS.update(original_users)
+    backend_main.save_users()
 
 
 @pytest.fixture
@@ -295,3 +301,71 @@ def test_photo_handling_in_session(tmp_path):
     session_manager.add_photo_to_session(phone, str(fake_photo))
     session = session_manager.get_session(phone)
     assert str(fake_photo) in session.photos
+
+
+def test_whatsapp_photo_is_published_as_a_web_url(tmp_path):
+    """A staged WhatsApp image must become a URL the listings UI can render."""
+    photos_root = tmp_path / "listings_photos"
+    staged_photo = photos_root / "wa_temp_447123456789" / "incoming.jpeg"
+    staged_photo.parent.mkdir(parents=True)
+    staged_photo.write_bytes(b"image bytes")
+
+    urls = _publish_whatsapp_photos([str(staged_photo)], "prop_12345678", photos_root)
+
+    assert urls == ["/media/listings/prop_12345678/whatsapp-1.jpeg"]
+    published_photo = photos_root / "prop_12345678" / "whatsapp-1.jpeg"
+    assert published_photo.read_bytes() == b"image bytes"
+    assert not staged_photo.exists()
+
+
+def test_captioned_photo_is_counted_before_done(client, monkeypatch):
+    """A Twilio photo whose caption is DONE must count toward the draft."""
+    phone = "whatsapp:+447123456789"
+    user = authenticate_user_by_phone(phone)
+    session = session_manager.get_or_create_session("+447123456789", user)
+    session.status = "IN_PROGRESS"
+    session.current_step = "photos"
+    session_manager.save_session(session)
+
+    monkeypatch.setattr(
+        "whatsapp_router._download_media_attachment",
+        lambda _url, _phone: "C:/managed/listings_photos/wa_temp_447123456789/photo.jpg",
+    )
+    monkeypatch.setattr(
+        action_handler,
+        "_finish_data_collection_and_draft",
+        lambda current_session: f"photos={len(current_session.photos)}",
+    )
+
+    response = client.post(
+        "/api/whatsapp/webhook",
+        data={
+            "From": phone,
+            "Body": "DONE",
+            "NumMedia": "1",
+            "MediaUrl0": "https://api.twilio.com/media/example",
+        },
+    )
+
+    assert response.status_code == 200
+    assert "photos=1" in response.text
+
+
+def test_failed_photo_download_is_not_reported_as_zero_attached(client, monkeypatch):
+    """Users receive a clear retry message when the provider media fetch fails."""
+    monkeypatch.setattr(
+        "whatsapp_router._download_media_attachment", lambda _url, _phone: None
+    )
+
+    response = client.post(
+        "/api/whatsapp/webhook",
+        data={
+            "From": "whatsapp:+447123456789",
+            "Body": "",
+            "NumMedia": "1",
+            "MediaUrl0": "https://api.twilio.com/media/example",
+        },
+    )
+
+    assert response.status_code == 200
+    assert "couldn't download it" in response.text

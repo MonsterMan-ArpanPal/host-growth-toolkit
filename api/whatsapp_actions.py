@@ -74,6 +74,19 @@ class WhatsAppActionHandler:
         session.user_email = user.get("email", session.user_email)
         session.user_name = user.get("first_name", session.user_name)
 
+        # Register downloaded media in the same state transition that handles
+        # its caption.  In particular, WhatsApp may deliver a photo with the
+        # caption "DONE" in one webhook request; the photo must be present
+        # before the DONE branch calculates the listing summary.
+        new_media = [path for path in (media_urls or []) if path not in session.photos]
+        if new_media:
+            session.photos.extend(new_media)
+            session_manager.save_session(session)
+            logger.info(
+                "[STAGE: PHOTO] Registered %d photo(s) for %s; total=%d",
+                len(new_media), phone, len(session.photos),
+            )
+
         text = (message_body or "").strip()
         lower = text.lower()
 
