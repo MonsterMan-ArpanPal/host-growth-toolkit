@@ -1,261 +1,99 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowUpRight, TrendingUp, Calendar, Sparkles, ArrowRight } from 'lucide-react';
-import { getUpcomingBookings, getProperties } from '../api/pricing';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ArrowRight, BarChart3, Camera, CircleAlert, Gauge, Home, Sparkles, TrendingUp } from 'lucide-react';
+import { fetchPricingRecommendation, getProperties } from '../api/pricing';
+import { getListings } from '../api/listings';
 import NoPropertiesEmptyState from '../components/dashboard/NoPropertiesEmptyState';
 import './Dashboard.css';
 
+const completionChecks = (property) => [
+  { label: 'Property name', complete: Boolean(property.name) },
+  { label: 'Property details', complete: Boolean(property.property_type && property.accommodates && property.bedrooms) },
+  { label: 'Location', complete: Boolean(property.location || property.host_neighbourhood || property.address) },
+  { label: 'Photos', complete: (property.photos || []).length >= 3 },
+  { label: 'Amenities', complete: (property.amenities || []).length >= 3 },
+  { label: 'Highlights', complete: (property.highlights || []).length >= 3 },
+  { label: 'Description', complete: Boolean(property.full_description) },
+];
+
+const healthFor = (property) => {
+  const checks = completionChecks(property);
+  return Math.round((checks.filter(check => check.complete).length / checks.length) * 100);
+};
+
+const healthTone = (score) => score >= 85 ? 'good' : score >= 60 ? 'watch' : 'needs-work';
+
 const Dashboard = () => {
-  const [bookings, setBookings] = useState([]);
-  const [opportunities, setOpportunities] = useState([]);
+  const [portfolio, setPortfolio] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [properties, setProperties] = useState([]);
+  const [hasProperties, setHasProperties] = useState(false);
 
   useEffect(() => {
-    document.title = 'Dashboard | host It';
-    
-    const loadDashboardData = async () => {
+    document.title = 'Overview | host It';
+    let active = true;
+    async function loadPortfolio() {
       try {
-        setLoading(true);
-        const hostProperties = await getProperties();
-        setProperties(hostProperties);
-        if (hostProperties.length === 0) {
-          setBookings([]);
-          setOpportunities([]);
-          return;
-        }
-        const bookingsData = await getUpcomingBookings();
-        setBookings(bookingsData.slice(0, 4)); // Show top 4
-        setOpportunities([]); // No live pricing-opportunities endpoint exists yet.
+        const [properties, listings] = await Promise.all([getProperties(), getListings().catch(() => [])]);
+        if (!active) return;
+        setHasProperties(properties.length > 0);
+        if (!properties.length) return;
+        const today = new Date().toISOString().slice(0, 10);
+        const priceResults = await Promise.allSettled(properties.map(property => fetchPricingRecommendation(property.id, today)));
+        if (!active) return;
+        setPortfolio(properties.map((property, index) => {
+          const listing = listings.find(item => item.id === property.id) || property;
+          const pricing = priceResults[index].status === 'fulfilled' ? priceResults[index].value : null;
+          const missing = completionChecks(listing).filter(check => !check.complete).map(check => check.label);
+          return { ...property, ...listing, health: healthFor(listing), missing, pricing, optimalRate: pricing?.recommendedPrice ?? null, baselineRate: pricing?.priceRange?.[0] ?? property.minPrice ?? null, competitiveness: pricing?.marketPressure ?? null };
+        }));
       } catch (error) {
-        console.error("Failed to load dashboard data", error);
-        setProperties([]);
-        setBookings([]);
-        setOpportunities([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadDashboardData();
+        console.error('Failed to load portfolio insights', error);
+        if (active) setHasProperties(false);
+      } finally { if (active) setLoading(false); }
+    }
+    loadPortfolio();
+    return () => { active = false; };
   }, []);
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
-    return 'Good evening';
-  };
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
-  };
-
-  const getInitials = (name) => {
-    return name ? name.charAt(0).toUpperCase() : '?';
-  };
-
-  const renderBookingSkeleton = () => (
-    Array(3).fill(0).map((_, i) => (
-      <div key={i} className="skeleton-booking">
-        <div className="skeleton skeleton-avatar"></div>
-        <div className="skeleton-booking-meta">
-          <div className="skeleton skeleton-text" style={{ width: '40%' }}></div>
-          <div className="skeleton skeleton-text" style={{ width: '30%' }}></div>
-        </div>
-      </div>
-    ))
-  );
-
-  const renderOppSkeleton = () => (
-    Array(3).fill(0).map((_, i) => (
-      <div key={i} className="skeleton skeleton-opp"></div>
-    ))
-  );
+  const insights = useMemo(() => {
+    const withPricing = portfolio.filter(item => Number.isFinite(item.optimalRate));
+    const health = portfolio.length ? Math.round(portfolio.reduce((sum, item) => sum + item.health, 0) / portfolio.length) : 0;
+    const competitivenessValues = portfolio.map(item => item.competitiveness).filter(Number.isFinite);
+    const competitiveness = competitivenessValues.length ? Math.round(competitivenessValues.reduce((sum, value) => sum + value, 0) / competitivenessValues.length) : null;
+    const averageRate = withPricing.length ? Math.round(withPricing.reduce((sum, item) => sum + item.optimalRate, 0) / withPricing.length) : null;
+    const alerts = portfolio.flatMap(property => {
+      const listingAlerts = property.missing.map(field => ({ id: `${property.id}-${field}`, icon: field === 'Photos' ? Camera : CircleAlert, tone: 'watch', title: `Complete ${field.toLowerCase()}`, detail: `${property.name} is missing ${field.toLowerCase()}, reducing its listing health score.`, action: 'Open listing', href: `/dashboard/listings/${property.id}` }));
+      const pricingAlerts = property.pricing?.marketPressure >= 70 ? [{ id: `${property.id}-demand`, icon: TrendingUp, tone: 'good', title: 'High-demand dates detected', detail: `${property.name} has strong local demand. Review the recommended nightly rate.`, action: 'Review pricing', href: '/dashboard/pricing' }] : [];
+      return [...listingAlerts, ...pricingAlerts];
+    });
+    return { health, competitiveness, averageRate, alerts };
+  }, [portfolio]);
 
   const user = JSON.parse(localStorage.getItem('wayzyy_user') || '{}');
   const firstName = user.first_name || 'there';
-  const bookingRevenue = bookings.reduce((total, booking) => total + Number(booking.totalPrice ?? booking.totalAmount ?? 0), 0);
-  const bookedNights = bookings.reduce((total, booking) => total + Number(booking.nights || 0), 0);
-  const daysThisMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
-  const occupancyRate = properties.length ? Math.round((bookedNights / (daysThisMonth * properties.length)) * 100) : 0;
-  const averageNightlyRate = bookedNights ? Math.round(bookingRevenue / bookedNights) : 0;
+  const greeting = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening';
+  if (!loading && !hasProperties) return <div className="dashboard-container"><NoPropertiesEmptyState /></div>;
 
-  if (!loading && properties.length === 0) {
-    return <div className="dashboard-container"><NoPropertiesEmptyState /></div>;
-  }
+  return <div className="dashboard-container">
+    <header className="dashboard-header animate-fade-in-up"><div className="dashboard-header-bg" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80')" }}><div className="dashboard-header-content"><h1 className="welcome-title">{greeting}, {firstName}</h1><p className="welcome-subtitle">Your listing and pricing intelligence, ready for action.</p></div></div></header>
 
-  return (
-    <div className="dashboard-container">
-      {/* Welcome Header with Image */}
-      <header className="dashboard-header animate-fade-in-up">
-        <div className="dashboard-header-bg" style={{
-          backgroundImage: `url('https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80')`
-        }}>
-          <div className="dashboard-header-content">
-            <h1 className="welcome-title">{getGreeting()}, {firstName}</h1>
-            <p className="welcome-subtitle">Here's how your properties are performing today.</p>
-          </div>
-        </div>
-      </header>
+    <section className="stats-grid" aria-label="Portfolio intelligence">
+      <MetricCard icon={<Home />} label="Overall Listing Health" value={loading ? '—' : `${insights.health}/100`} detail={loading ? 'Loading portfolio signals' : `${portfolio.length} active ${portfolio.length === 1 ? 'property' : 'properties'}`} tone={healthTone(insights.health)} />
+      <MetricCard icon={<Gauge />} label="Market Competitiveness" value={loading ? '—' : insights.competitiveness === null ? 'Pending' : `${insights.competitiveness}/100`} detail={insights.competitiveness === null ? 'Awaiting local market signal' : insights.competitiveness >= 70 ? 'Strong demand position' : 'Room to improve positioning'} tone={insights.competitiveness >= 70 ? 'good' : 'watch'} />
+      <MetricCard icon={<TrendingUp />} label="Average Optimal Rate" value={loading ? '—' : insights.averageRate === null ? 'Pending' : `£${insights.averageRate}`} detail={insights.averageRate === null ? 'Pricing engine is calculating' : 'Today’s dynamic recommendation'} tone="good" />
+      <MetricCard icon={<CircleAlert />} label="Active Optimization Alerts" value={loading ? '—' : insights.alerts.length} detail={loading ? 'Checking listings' : insights.alerts.length ? 'Prioritised actions ready' : 'Your portfolio is on track'} tone={insights.alerts.length ? 'watch' : 'good'} />
+    </section>
 
-      {/* Stats Grid */}
-      <section className="stats-grid">
-        <div className="stat-card animate-fade-in-up stagger-1">
-          <span className="stat-label">This Month's Revenue</span>
-          <span className="stat-value">£{bookingRevenue.toLocaleString('en-GB')}</span>
-        </div>
-        <div className="stat-card animate-fade-in-up stagger-2">
-          <span className="stat-label">Occupancy Rate</span>
-          <span className="stat-value">{occupancyRate}%</span>
-        </div>
-        <div className="stat-card animate-fade-in-up stagger-3">
-          <span className="stat-label">Avg Nightly Rate</span>
-          <span className="stat-value">£{averageNightlyRate}</span>
-        </div>
-        <div className="stat-card animate-fade-in-up stagger-4">
-          <span className="stat-label">Bookings</span>
-          <span className="stat-value">{bookings.length}</span>
-        </div>
-      </section>
-
-      {/* Main Content */}
-      <div className="dashboard-main-content">
-        {/* Left Column: Bookings */}
-        <section className="section-card animate-fade-in-up stagger-5">
-          <div className="section-header">
-            <h2 className="section-title">
-              Upcoming Bookings
-              {!loading && <span className="badge">{bookings.length}</span>}
-            </h2>
-          </div>
-          
-          <div className="bookings-list">
-            {loading ? (
-              renderBookingSkeleton()
-            ) : (
-              bookings.map((booking) => (
-                <div key={booking.id} className="booking-item">
-                  <div className="booking-info">
-                    <div className="guest-avatar">
-                      {booking.avatarUrl ? (
-                        <img src={booking.avatarUrl} alt={booking.guestName} className="guest-avatar-img" />
-                      ) : (
-                        getInitials(booking.guestName)
-                      )}
-                    </div>
-                    <div className="guest-details">
-                      <span className="guest-name">{booking.guestName}</span>
-                      <span className="property-name">{booking.propertyName}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="booking-meta">
-                    <span className="booking-dates">
-                      {formatDate(booking.checkIn)} &mdash; {formatDate(booking.checkOut)}
-                    </span>
-                    <span className={`booking-status ${booking.status.toLowerCase()}`}>
-                      {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                    </span>
-                    <span className="booking-price">£{booking.totalAmount}</span>
-                  </div>
-                </div>
-              ))
-            )}
-            {!loading && bookings.length === 0 && (
-              <p style={{ color: 'var(--gray-500)', fontSize: 'var(--text-sm)' }}>No upcoming bookings.</p>
-            )}
-          </div>
-        </section>
-
-        {/* Right Column: Pricing Opportunities */}
-        <section className="section-card animate-fade-in-up stagger-6">
-          <div className="section-header">
-            <h2 className="section-title">Pricing Opportunities</h2>
-          </div>
-          
-          <div className="opportunities-list">
-            {loading ? (
-              renderOppSkeleton()
-            ) : (
-              opportunities.map((opp, idx) => (
-                <div key={idx} className="opportunity-item">
-                  <div className="opp-date-info" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '8px',
-                      backgroundImage: 'url(https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80)',
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                      flexShrink: 0
-                    }} />
-                    <div>
-                      <span className="opp-date" style={{ display: 'block' }}>
-                        {new Date(opp.date).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' })}
-                      </span>
-                      <span className="opp-reason" style={{ display: 'block' }}>{opp.reason}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="opp-price-info">
-                    <div className="opp-prices">
-                      <span className="current-price">£{opp.currentPrice}</span>
-                      <ArrowRight className="arrow-icon" />
-                      <span className="recommended-price">£{opp.recommendedPrice}</span>
-                    </div>
-                    <span className="uplift-pill">+£{opp.uplift || (opp.recommendedPrice - opp.currentPrice)}</span>
-                  </div>
-                </div>
-              ))
-            )}
-            {!loading && opportunities.length === 0 && (
-              <p style={{ color: 'var(--gray-500)', fontSize: 'var(--text-sm)' }}>No new opportunities found.</p>
-            )}
-          </div>
-          
-          <a href="/dashboard/pricing" className="view-all-link">
-            View all in Pricing
-          </a>
-        </section>
-      </div>
-
-      {/* Quick Actions */}
-      <section className="quick-actions-section animate-fade-in-up stagger-6">
-        <div className="quick-actions-grid">
-          <a href="/dashboard/pricing" className="action-card">
-            <div className="action-icon-wrapper">
-              <TrendingUp className="action-icon" />
-            </div>
-            <div className="action-content">
-              <span className="action-title">Adjust pricing</span>
-            </div>
-            <ArrowRight className="action-arrow" />
-          </a>
-          
-          <a href="/dashboard/bookings" className="action-card">
-            <div className="action-icon-wrapper">
-              <Calendar className="action-icon" />
-            </div>
-            <div className="action-content">
-              <span className="action-title">View bookings</span>
-            </div>
-            <ArrowRight className="action-arrow" />
-          </a>
-          
-          <a href="/dashboard/listings" className="action-card">
-            <div className="action-icon-wrapper">
-              <Sparkles className="action-icon" />
-            </div>
-            <div className="action-content">
-              <span className="action-title">Optimise listings</span>
-            </div>
-            <ArrowRight className="action-arrow" />
-          </a>
-        </div>
-      </section>
+    <div className="dashboard-main-content">
+      <section className="section-card animate-fade-in-up stagger-5"><div className="section-header"><h2 className="section-title"><BarChart3 size={19} /> Portfolio Health Breakdown</h2><span className="badge">{portfolio.length}</span></div><div className="portfolio-list">{loading ? <DashboardSkeleton rows={3} /> : portfolio.map(property => <a className="portfolio-item" key={property.id} href={`/dashboard/listings/${property.id}`}><div className={`portfolio-score ${healthTone(property.health)}`}><strong>{property.health}</strong><span>health</span></div><div className="portfolio-info"><strong>{property.name}</strong><span>{property.missing.length ? `${property.missing.length} completion item${property.missing.length === 1 ? '' : 's'} left` : 'Listing complete'}</span></div><div className="portfolio-rate"><span>Baseline rate</span><strong>{property.baselineRate ? `£${Math.round(property.baselineRate)}` : 'Pending'}</strong></div><ArrowRight size={16} className="portfolio-arrow" /></a>)}</div></section>
+      <section className="section-card animate-fade-in-up stagger-6"><div className="section-header"><h2 className="section-title"><Sparkles size={19} /> AI Recommendations</h2></div><div className="recommendation-list">{loading ? <DashboardSkeleton rows={3} /> : insights.alerts.slice(0, 4).map(alert => { const Icon = alert.icon; return <a className={`recommendation-item ${alert.tone}`} key={alert.id} href={alert.href}><div className="recommendation-icon"><Icon size={17} /></div><div><strong>{alert.title}</strong><p>{alert.detail}</p><span>{alert.action} <ArrowRight size={13} /></span></div></a>; })}{!loading && insights.alerts.length === 0 && <p className="dashboard-empty-copy">No urgent actions. Your listings and pricing signals look healthy.</p>}</div><a href="/dashboard/pricing" className="view-all-link">Open Pricing Intelligence <ArrowRight size={14} /></a></section>
     </div>
-  );
+
+    <section className="quick-actions-section animate-fade-in-up stagger-6"><div className="quick-actions-grid"><QuickAction href="/dashboard/pricing" icon={<TrendingUp className="action-icon" />} title="Review pricing" /><QuickAction href="/dashboard/calendar" icon={<Gauge className="action-icon" />} title="Manage availability" /><QuickAction href="/dashboard/listings" icon={<Sparkles className="action-icon" />} title="Optimise listings" /></div></section>
+  </div>;
 };
+
+function MetricCard({ icon, label, value, detail, tone }) { return <div className={`stat-card animate-fade-in-up metric-${tone}`}><div className="metric-icon">{icon}</div><span className="stat-label">{label}</span><span className="stat-value">{value}</span><span className="metric-detail">{detail}</span></div>; }
+function QuickAction({ href, icon, title }) { return <a href={href} className="action-card"><div className="action-icon-wrapper">{icon}</div><div className="action-content"><span className="action-title">{title}</span></div><ArrowRight className="action-arrow" /></a>; }
+function DashboardSkeleton({ rows }) { return Array.from({ length: rows }, (_, index) => <div className="dashboard-row-skeleton" key={index}><span className="skeleton" /><span className="skeleton" /></div>); }
 
 export default Dashboard;
