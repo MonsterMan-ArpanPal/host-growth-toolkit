@@ -64,7 +64,7 @@ async def whatsapp_webhook(
                     {"role": "system", "content": LLM_SYSTEM_PROMPT},
                     {"role": "user", "content": Body},
                 ],
-                model="llama3-8b-8192",
+                model="qwen/qwen3.8-27b",
                 response_format={"type": "json_object"},
             )
             response_content = chat_completion.choices[0].message.content
