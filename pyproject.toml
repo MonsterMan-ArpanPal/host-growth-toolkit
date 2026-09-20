@@ -9,6 +9,7 @@ dependencies = [
   "pydantic>=2.7",
   "python-multipart>=0.0.9",
   "requests>=2.32",
+  "icalendar>=6.3",
   "numpy>=1.26",
   "pandas>=2.2",
   "joblib>=1.4",

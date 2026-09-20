@@ -118,47 +118,19 @@ export async function getProperty(propertyId) {
 // ─── Bookings ───────────────────────────────────────────────────
 export async function getBookings(propertyId) {
   try {
-    const response = await fetch('/api/bookings');
+    const endpoint = propertyId
+      ? `/api/properties/${encodeURIComponent(propertyId)}/bookings`
+      : '/api/bookings';
+    const response = await fetch(endpoint);
     if (response.ok) {
       const data = await response.json();
       const liveBookings = Array.isArray(data.bookings) ? data.bookings : [];
       return propertyId ? liveBookings.filter(booking => booking.propertyId === propertyId) : liveBookings;
     }
   } catch (err) {
-    console.warn('Backend bookings unavailable, using fallback', err);
+    console.warn('Backend bookings unavailable', err);
   }
-  
-  // Return mock bookings if API fails (so Dashboard and Bookings tab aren't empty)
-  const today = new Date();
-  const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-  
-  const fallbackBookings = [
-    {
-      id: 'bkg_001',
-      propertyId: propertyId || 'prop_custom_001',
-      propertyName: 'London Central Apartment',
-      guestName: 'Sarah Jenkins',
-      checkIn: today.toISOString().split('T')[0],
-      checkOut: nextWeek.toISOString().split('T')[0],
-      status: 'confirmed',
-      totalAmount: 1250,
-      nights: 7,
-      avatarUrl: 'https://i.pravatar.cc/150?u=sarah'
-    },
-    {
-      id: 'bkg_002',
-      propertyId: propertyId || 'prop_custom_001',
-      propertyName: 'London Central Apartment',
-      guestName: 'Michael Chen',
-      checkIn: new Date(today.getTime() + 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      checkOut: new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      status: 'pending',
-      totalAmount: 680,
-      nights: 4,
-      avatarUrl: 'https://i.pravatar.cc/150?u=michael'
-    }
-  ];
-  return fallbackBookings;
+  return [];
 }
 
 export async function getUpcomingBookings() {

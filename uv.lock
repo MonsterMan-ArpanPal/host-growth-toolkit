@@ -246,6 +246,7 @@ source = { virtual = "api" }
 dependencies = [
     { name = "fastapi" },
     { name = "groq" },
+    { name = "icalendar" },
     { name = "joblib" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "numpy", version = "2.5.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
@@ -270,6 +271,7 @@ image-qc = [
 requires-dist = [
     { name = "fastapi", specifier = ">=0.141.1" },
     { name = "groq", specifier = ">=1.7.0" },
+    { name = "icalendar", specifier = ">=6.3" },
     { name = "joblib", specifier = ">=1.6.0" },
     { name = "numpy", specifier = ">=1.26" },
     { name = "opencv-python-headless", marker = "extra == 'image-qc'", specifier = ">=4.9" },
@@ -1292,6 +1294,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/fe/0f/e83fdd856da8fca26bf78d71709ebd120432a0ce535e72b9597cab1eb5bf/huggingface_hub-1.32.0.tar.gz", hash = "sha256:ed70a45498abe86039df7c2f4e5f7575de524be908d3840e8f828d5525eafd6a", size = 1038662, upload-time = "2026-09-17T10:27:48.049Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/1b/cf/d98dd561d6d0d7b7d7a64d1563f8aaaa7c235daee41c1c9bcc3da62420ed/huggingface_hub-1.32.0-py3-none-any.whl", hash = "sha256:b0c7c80561969d9cdacdd55fce67ba9584cca0b9d4ea80957a3a5c1445fac5c8", size = 842906, upload-time = "2026-09-17T10:27:46.102Z" },
+]
+
+[[package]]
+name = "icalendar"
+version = "7.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "python-dateutil" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+    { name = "tzdata" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/47/2b/1bbf82d316df18c3331d9a06228819c8a5814ceda545a3e9980e52ffce1b/icalendar-7.3.0.tar.gz", hash = "sha256:7bd001c8e648205e1bde5c6a5b77096598e8d0893dcf57755c6c597635620132", size = 525811, upload-time = "2026-08-19T15:10:21.05Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bb/82/50bff78b0bb0c7d7c0cb39e0ee189b92f611fff6bd7cf57f25e92d5a7551/icalendar-7.3.0-py3-none-any.whl", hash = "sha256:8355acfe17be81b368f0b1e3740817cea9b56ea889931f8f1a87c62f2d28db0b", size = 542540, upload-time = "2026-08-19T15:10:19.525Z" },
 ]
 
 [[package]]
@@ -4108,6 +4124,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "fastapi" },
     { name = "groq" },
+    { name = "icalendar" },
     { name = "joblib" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "numpy", version = "2.5.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
@@ -4139,6 +4156,7 @@ dev = [
 requires-dist = [
     { name = "fastapi", specifier = ">=0.115" },
     { name = "groq", specifier = ">=0.9" },
+    { name = "icalendar", specifier = ">=6.3" },
     { name = "joblib", specifier = ">=1.4" },
     { name = "numpy", specifier = ">=1.26" },
     { name = "opencv-python-headless", marker = "extra == 'image-qc'", specifier = ">=4.9" },

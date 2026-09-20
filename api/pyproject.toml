@@ -17,6 +17,7 @@ dependencies = [
     "twilio>=9.11.1",
     "uvicorn>=0.53.0",
     "requests>=2.32",
+    "icalendar>=6.3",
     "python-dotenv>=1.0",
     "tinydb>=4.8",
 ]

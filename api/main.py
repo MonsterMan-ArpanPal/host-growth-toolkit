@@ -42,16 +42,19 @@ from dotenv import load_dotenv
 # Load .env (OPENROUTER_API_KEY, VISION_MODEL, WRITER_MODEL, ...)
 load_dotenv(PROJECT_ROOT / ".env")
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, field_validator
 import uvicorn
 from tinydb import TinyDB, Query
 from tinydb.storages import Storage
+from icalendar import Calendar, Event
 
 from pricing.pricing_engine import PricingEngine, PricingRecommendation
 from whatsapp_router import router as whatsapp_router
+from whatsapp_router import LIVE_BOOKINGS
+from calendar_sync import sync_feed, validate_feed_url
 
 app = FastAPI(title="Wayzyy Pricing API")
 app.include_router(whatsapp_router)
@@ -107,6 +110,7 @@ DEFAULT_RUNTIME_DATA_DIR = Path(
 ) / "Wayzyy"
 RUNTIME_DATA_DIR = Path(os.getenv("WAYZYY_DATA_DIR", str(DEFAULT_RUNTIME_DATA_DIR)))
 LISTINGS_DB_PATH = RUNTIME_DATA_DIR / "listings.json"
+CALENDAR_SYNC_DB_PATH = RUNTIME_DATA_DIR / "calendar_sync.json"
 LISTINGS_PHOTOS_DIR = RUNTIME_DATA_DIR / "listings_photos"
 RUNTIME_DATA_DIR.mkdir(parents=True, exist_ok=True)
 LISTINGS_PHOTOS_DIR.mkdir(parents=True, exist_ok=True)
@@ -174,6 +178,10 @@ def initialize_empty_listings_store():
 
 initialize_empty_listings_store()
 listings_db = TinyDB(str(LISTINGS_DB_PATH), storage=AtomicJSONStorage)
+calendar_sync_db = TinyDB(str(CALENDAR_SYNC_DB_PATH), storage=AtomicJSONStorage)
+calendar_blocks = calendar_sync_db.table("blocks")
+calendar_feeds = calendar_sync_db.table("feeds")
+calendar_exports = calendar_sync_db.table("exports")
 
 
 def _with_listings_store(operation):
@@ -199,6 +207,26 @@ def all_listings():
 
 def save_listing(doc: Dict[str, Any]):
     return _with_listings_store(lambda: listings_db.insert(doc))
+
+
+def property_owned_by(property_id: str, email: Optional[str]) -> bool:
+    """Authorise property settings through the existing email-scoped session model."""
+    if not email:
+        return False
+    listing = listing_by_id(property_id)
+    if listing and listing.get("owner_email") == email:
+        return True
+    property_doc = DEMO_PROPERTIES.get(property_id)
+    return bool(property_doc and property_doc.get("owner_email") == email)
+
+
+def export_token_for(property_id: str) -> str:
+    record = calendar_exports.get(Query().propertyId == property_id)
+    if record:
+        return record["token"]
+    token = uuid.uuid4().hex + uuid.uuid4().hex
+    calendar_exports.insert({"propertyId": property_id, "token": token})
+    return token
 
 # Approximate London borough centroid coordinates (lat, lon), used so the
 # pricing model/comparables can geolocate listings saved from the UI.
@@ -811,6 +839,88 @@ def get_saved_listing(listing_id: str, email: Optional[str] = None):
         raise HTTPException(status_code=404, detail="Listing not found")
     doc.pop("_id", None)  # drop TinyDB internal key
     return {"listing": doc}
+
+
+# ---------------------------------------------------------------------------
+# iCalendar channel sync
+# ---------------------------------------------------------------------------
+class CalendarImportRequest(BaseModel):
+    url: str
+    email: str
+
+
+def calendar_records_for(property_id: str) -> List[Dict[str, Any]]:
+    """Records sent to channel calendars: confirmed stays plus external holds."""
+    confirmed = [
+        booking for booking in LIVE_BOOKINGS
+        if booking.get("propertyId") == property_id and booking.get("status") == "confirmed"
+    ]
+    imported = calendar_blocks.search(Query().propertyId == property_id)
+    return [*confirmed, *imported]
+
+
+@app.get("/api/properties/{property_id}/calendar-sync")
+def get_calendar_sync_settings(request: Request, property_id: str, email: Optional[str] = None):
+    if not property_owned_by(property_id, email):
+        raise HTTPException(status_code=404, detail="Property not found")
+    token = export_token_for(property_id)
+    base_url = str(request.base_url).rstrip("/")
+    feeds = calendar_feeds.search(Query().propertyId == property_id)
+    return {
+        "export_url": f"{base_url}/api/properties/{property_id}/ical?token={token}",
+        "imports": [{"url": item["url"]} for item in feeds],
+        "blocks": calendar_blocks.search(Query().propertyId == property_id),
+    }
+
+
+@app.get("/api/properties/{property_id}/ical")
+def export_property_calendar(property_id: str, token: str):
+    record = calendar_exports.get(Query().propertyId == property_id)
+    if not record or token != record.get("token"):
+        raise HTTPException(status_code=404, detail="Calendar feed not found")
+    calendar = Calendar()
+    calendar.add("prodid", "-//HostIt//Property calendar//EN")
+    calendar.add("version", "2.0")
+    calendar.add("calscale", "GREGORIAN")
+    calendar.add("method", "PUBLISH")
+    for booking in calendar_records_for(property_id):
+        if not booking.get("checkIn") or not booking.get("checkOut"):
+            continue
+        event = Event()
+        event.add("uid", f"{booking.get('id', uuid.uuid4().hex)}@hostit")
+        event.add("dtstamp", datetime.now(timezone.utc))
+        event.add("dtstart", datetime.fromisoformat(booking["checkIn"]).date())
+        event.add("dtend", datetime.fromisoformat(booking["checkOut"]).date())
+        event.add("summary", "Reserved" if booking.get("status") == "confirmed" else "Unavailable")
+        event.add("transp", "OPAQUE")
+        calendar.add_component(event)
+    filename = f"hostit-{property_id}.ics"
+    return Response(
+        content=calendar.to_ical(),
+        media_type="text/calendar; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"', "Cache-Control": "no-store"},
+    )
+
+
+@app.post("/api/properties/{property_id}/calendar-sync/import")
+def import_property_calendar(property_id: str, payload: CalendarImportRequest):
+    if not property_owned_by(property_id, payload.email):
+        raise HTTPException(status_code=404, detail="Property not found")
+    try:
+        feed_url = validate_feed_url(payload.url)
+        result = sync_feed(calendar_blocks, calendar_feeds, property_id, feed_url, LIVE_BOOKINGS)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    except Exception as error:
+        # Do not expose remote server details or parse errors to the browser.
+        raise HTTPException(status_code=502, detail="Calendar sync failed. Check that the iCal URL is public and valid.") from error
+    return {**result, "blocks": calendar_blocks.search(Query().propertyId == property_id)}
+
+
+@app.get("/api/properties/{property_id}/bookings")
+def get_property_bookings(property_id: str):
+    """Calendar UI data: live reservations plus imported availability blocks."""
+    return {"bookings": calendar_records_for(property_id)}
 
 
 @app.get("/media/listings/{prop_id}/{filename}")
