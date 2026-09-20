@@ -12,25 +12,31 @@ export default function ComparableListings({ comparables, loading }) {
 
   if (!comparables) return null;
 
+  const median = comparables.medianPrice ?? 180;
+  const budget = comparables.p25Price ?? Math.round(median * 0.75);
+  const luxury = comparables.p75Price ?? Math.round(median * 1.35);
+  const subtitle = comparables.message 
+    || (comparables.count ? `${comparables.count} similar listings within ${comparables.radiusKm}km` : 'Based on local market listings');
+
   return (
     <div className="comparable-listings animate-fade-in-up stagger-3">
       <div className="comparables-header">
         <h3>Nearby comparables</h3>
-        <p className="subtitle">{comparables.count} similar listings within {comparables.radiusKm}km</p>
+        <p className="subtitle">{subtitle}</p>
       </div>
       
       <div className="comparables-stats">
         <div className="stat-box">
           <span className="stat-label">Budget</span>
-          <span className="stat-value">£{comparables.p25Price}</span>
+          <span className="stat-value">£{budget}</span>
         </div>
         <div className="stat-box highlight">
           <span className="stat-label">Median</span>
-          <span className="stat-value">£{comparables.medianPrice}</span>
+          <span className="stat-value">£{median}</span>
         </div>
         <div className="stat-box">
-          <span className="stat-label">Premium</span>
-          <span className="stat-value">£{comparables.p75Price}</span>
+          <span className="stat-label">Luxury</span>
+          <span className="stat-value">£{luxury}</span>
         </div>
       </div>
     </div>

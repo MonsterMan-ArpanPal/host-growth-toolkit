@@ -1,0 +1,1031 @@
+{
+  "barking and dagenham__entire home/apt": {
+    "count": 260,
+    "p25": 138.12,
+    "median": 183.75,
+    "p75": 238.67,
+    "mean": 202.17
+  },
+  "barking and dagenham__private room": {
+    "count": 280,
+    "p25": 46.0,
+    "median": 58.0,
+    "p75": 75.19,
+    "mean": 70.05
+  },
+  "barnet__entire home/apt": {
+    "count": 1166,
+    "p25": 130.0,
+    "median": 182.55,
+    "p75": 252.91,
+    "mean": 209.5
+  },
+  "barnet__hotel room": {
+    "count": 11,
+    "p25": 85.5,
+    "median": 155.0,
+    "p75": 157.0,
+    "mean": 125.45
+  },
+  "barnet__private room": {
+    "count": 619,
+    "p25": 52.59,
+    "median": 71.0,
+    "p75": 97.0,
+    "mean": 88.47
+  },
+  "bexley__entire home/apt": {
+    "count": 260,
+    "p25": 114.44,
+    "median": 172.0,
+    "p75": 232.0,
+    "mean": 211.01
+  },
+  "bexley__private room": {
+    "count": 268,
+    "p25": 50.3,
+    "median": 63.0,
+    "p75": 80.0,
+    "mean": 71.73
+  },
+  "brent__entire home/apt": {
+    "count": 1254,
+    "p25": 150.0,
+    "median": 221.0,
+    "p75": 319.63,
+    "mean": 264.13
+  },
+  "brent__hotel room": {
+    "count": 8,
+    "p25": 118.0,
+    "median": 140.5,
+    "p75": 185.25,
+    "mean": 158.38
+  },
+  "brent__private room": {
+    "count": 854,
+    "p25": 60.0,
+    "median": 83.0,
+    "p75": 119.75,
+    "mean": 113.5
+  },
+  "brent__shared room": {
+    "count": 5,
+    "p25": 32.67,
+    "median": 36.0,
+    "p75": 107.0,
+    "mean": 79.53
+  },
+  "bromley__entire home/apt": {
+    "count": 415,
+    "p25": 133.57,
+    "median": 171.33,
+    "p75": 222.67,
+    "mean": 196.83
+  },
+  "bromley__private room": {
+    "count": 272,
+    "p25": 54.0,
+    "median": 69.0,
+    "p75": 100.42,
+    "mean": 88.38
+  },
+  "bromley__shared room": {
+    "count": 2,
+    "p25": 59.36,
+    "median": 66.72,
+    "p75": 74.08,
+    "mean": 66.72
+  },
+  "camden__entire home/apt": {
+    "count": 3138,
+    "p25": 192.0,
+    "median": 274.62,
+    "p75": 403.0,
+    "mean": 324.43
+  },
+  "camden__hotel room": {
+    "count": 3,
+    "p25": 98.0,
+    "median": 105.0,
+    "p75": 223.0,
+    "mean": 179.0
+  },
+  "camden__private room": {
+    "count": 1255,
+    "p25": 79.0,
+    "median": 100.0,
+    "p75": 144.0,
+    "mean": 125.91
+  },
+  "camden__shared room": {
+    "count": 23,
+    "p25": 21.5,
+    "median": 34.0,
+    "p75": 37.5,
+    "mean": 42.05
+  },
+  "city of london__entire home/apt": {
+    "count": 408,
+    "p25": 247.38,
+    "median": 329.25,
+    "p75": 447.04,
+    "mean": 388.57
+  },
+  "city of london__private room": {
+    "count": 47,
+    "p25": 101.2,
+    "median": 197.0,
+    "p75": 571.0,
+    "mean": 308.76
+  },
+  "croydon__entire home/apt": {
+    "count": 735,
+    "p25": 105.0,
+    "median": 142.67,
+    "p75": 202.0,
+    "mean": 168.65
+  },
+  "croydon__hotel room": {
+    "count": 4,
+    "p25": 76.0,
+    "median": 77.5,
+    "p75": 84.25,
+    "mean": 82.75
+  },
+  "croydon__private room": {
+    "count": 594,
+    "p25": 46.0,
+    "median": 59.0,
+    "p75": 80.0,
+    "mean": 78.59
+  },
+  "croydon__shared room": {
+    "count": 3,
+    "p25": 58.66,
+    "median": 82.33,
+    "p75": 145.24,
+    "mean": 108.49
+  },
+  "ealing__entire home/apt": {
+    "count": 970,
+    "p25": 110.0,
+    "median": 160.0,
+    "p75": 245.0,
+    "mean": 203.92
+  },
+  "ealing__hotel room": {
+    "count": 2,
+    "p25": 161.25,
+    "median": 236.5,
+    "p75": 311.75,
+    "mean": 236.5
+  },
+  "ealing__private room": {
+    "count": 723,
+    "p25": 59.0,
+    "median": 72.0,
+    "p75": 98.0,
+    "mean": 88.2
+  },
+  "ealing__shared room": {
+    "count": 5,
+    "p25": 33.0,
+    "median": 92.0,
+    "p75": 99.0,
+    "mean": 89.39
+  },
+  "enfield__entire home/apt": {
+    "count": 366,
+    "p25": 133.36,
+    "median": 189.0,
+    "p75": 248.38,
+    "mean": 214.07
+  },
+  "enfield__hotel room": {
+    "count": 9,
+    "p25": 69.0,
+    "median": 84.0,
+    "p75": 84.0,
+    "mean": 79.0
+  },
+  "enfield__private room": {
+    "count": 322,
+    "p25": 53.0,
+    "median": 72.75,
+    "p75": 99.75,
+    "mean": 87.76
+  },
+  "enfield__shared room": {
+    "count": 1,
+    "p25": 114.0,
+    "median": 114.0,
+    "p75": 114.0,
+    "mean": 114.0
+  },
+  "greenwich__entire home/apt": {
+    "count": 785,
+    "p25": 150.0,
+    "median": 195.5,
+    "p75": 274.0,
+    "mean": 228.29
+  },
+  "greenwich__private room": {
+    "count": 534,
+    "p25": 51.62,
+    "median": 69.0,
+    "p75": 92.0,
+    "mean": 84.33
+  },
+  "greenwich__shared room": {
+    "count": 2,
+    "p25": 83.25,
+    "median": 95.5,
+    "p75": 107.75,
+    "mean": 95.5
+  },
+  "hackney__entire home/apt": {
+    "count": 2011,
+    "p25": 153.2,
+    "median": 206.69,
+    "p75": 288.01,
+    "mean": 237.89
+  },
+  "hackney__hotel room": {
+    "count": 5,
+    "p25": 54.0,
+    "median": 151.0,
+    "p75": 229.0,
+    "mean": 169.0
+  },
+  "hackney__private room": {
+    "count": 887,
+    "p25": 66.0,
+    "median": 86.0,
+    "p75": 113.0,
+    "mean": 101.26
+  },
+  "hackney__shared room": {
+    "count": 4,
+    "p25": 58.5,
+    "median": 63.0,
+    "p75": 69.5,
+    "mean": 65.0
+  },
+  "hammersmith and fulham__entire home/apt": {
+    "count": 2026,
+    "p25": 170.6,
+    "median": 234.64,
+    "p75": 338.11,
+    "mean": 285.03
+  },
+  "hammersmith and fulham__hotel room": {
+    "count": 1,
+    "p25": 75.0,
+    "median": 75.0,
+    "p75": 75.0,
+    "mean": 75.0
+  },
+  "hammersmith and fulham__private room": {
+    "count": 710,
+    "p25": 71.25,
+    "median": 92.0,
+    "p75": 124.0,
+    "mean": 114.41
+  },
+  "hammersmith and fulham__shared room": {
+    "count": 9,
+    "p25": 33.0,
+    "median": 33.0,
+    "p75": 60.0,
+    "mean": 50.06
+  },
+  "haringey__entire home/apt": {
+    "count": 915,
+    "p25": 136.94,
+    "median": 195.83,
+    "p75": 278.0,
+    "mean": 228.22
+  },
+  "haringey__hotel room": {
+    "count": 1,
+    "p25": 283.0,
+    "median": 283.0,
+    "p75": 283.0,
+    "mean": 283.0
+  },
+  "haringey__private room": {
+    "count": 609,
+    "p25": 58.0,
+    "median": 80.0,
+    "p75": 107.5,
+    "mean": 93.5
+  },
+  "haringey__shared room": {
+    "count": 15,
+    "p25": 32.5,
+    "median": 40.0,
+    "p75": 136.47,
+    "mean": 84.5
+  },
+  "harrow__entire home/apt": {
+    "count": 263,
+    "p25": 115.15,
+    "median": 167.33,
+    "p75": 261.5,
+    "mean": 205.74
+  },
+  "harrow__private room": {
+    "count": 240,
+    "p25": 52.75,
+    "median": 71.66,
+    "p75": 92.5,
+    "mean": 82.46
+  },
+  "harrow__shared room": {
+    "count": 3,
+    "p25": 48.89,
+    "median": 73.0,
+    "p75": 80.0,
+    "mean": 61.6
+  },
+  "havering__entire home/apt": {
+    "count": 215,
+    "p25": 122.86,
+    "median": 184.0,
+    "p75": 253.0,
+    "mean": 208.14
+  },
+  "havering__hotel room": {
+    "count": 4,
+    "p25": 88.0,
+    "median": 92.5,
+    "p75": 98.0,
+    "mean": 93.5
+  },
+  "havering__private room": {
+    "count": 191,
+    "p25": 46.0,
+    "median": 58.0,
+    "p75": 84.5,
+    "mean": 78.28
+  },
+  "hillingdon__entire home/apt": {
+    "count": 337,
+    "p25": 130.0,
+    "median": 181.67,
+    "p75": 242.0,
+    "mean": 225.55
+  },
+  "hillingdon__hotel room": {
+    "count": 4,
+    "p25": 93.25,
+    "median": 101.0,
+    "p75": 110.75,
+    "mean": 103.0
+  },
+  "hillingdon__private room": {
+    "count": 409,
+    "p25": 54.0,
+    "median": 65.0,
+    "p75": 86.0,
+    "mean": 84.6
+  },
+  "hounslow__entire home/apt": {
+    "count": 573,
+    "p25": 141.0,
+    "median": 197.0,
+    "p75": 275.0,
+    "mean": 236.26
+  },
+  "hounslow__hotel room": {
+    "count": 2,
+    "p25": 92.5,
+    "median": 135.0,
+    "p75": 177.5,
+    "mean": 135.0
+  },
+  "hounslow__private room": {
+    "count": 403,
+    "p25": 51.48,
+    "median": 71.0,
+    "p75": 98.23,
+    "mean": 95.35
+  },
+  "hounslow__shared room": {
+    "count": 2,
+    "p25": 42.0,
+    "median": 52.0,
+    "p75": 62.0,
+    "mean": 52.0
+  },
+  "islington__entire home/apt": {
+    "count": 1985,
+    "p25": 162.0,
+    "median": 225.0,
+    "p75": 313.71,
+    "mean": 263.79
+  },
+  "islington__private room": {
+    "count": 706,
+    "p25": 73.74,
+    "median": 96.25,
+    "p75": 127.0,
+    "mean": 112.82
+  },
+  "islington__shared room": {
+    "count": 3,
+    "p25": 107.0,
+    "median": 144.0,
+    "p75": 159.0,
+    "mean": 129.33
+  },
+  "kensington and chelsea__entire home/apt": {
+    "count": 3929,
+    "p25": 216.5,
+    "median": 318.33,
+    "p75": 481.0,
+    "mean": 393.92
+  },
+  "kensington and chelsea__hotel room": {
+    "count": 20,
+    "p25": 346.67,
+    "median": 369.5,
+    "p75": 393.0,
+    "mean": 363.63
+  },
+  "kensington and chelsea__private room": {
+    "count": 511,
+    "p25": 90.0,
+    "median": 128.5,
+    "p75": 217.0,
+    "mean": 187.07
+  },
+  "kensington and chelsea__shared room": {
+    "count": 5,
+    "p25": 35.0,
+    "median": 38.0,
+    "p75": 54.0,
+    "mean": 44.4
+  },
+  "kingston upon thames__entire home/apt": {
+    "count": 269,
+    "p25": 133.0,
+    "median": 190.0,
+    "p75": 283.0,
+    "mean": 245.4
+  },
+  "kingston upon thames__private room": {
+    "count": 210,
+    "p25": 59.0,
+    "median": 79.0,
+    "p75": 106.72,
+    "mean": 93.98
+  },
+  "lambeth__entire home/apt": {
+    "count": 1782,
+    "p25": 166.37,
+    "median": 229.82,
+    "p75": 333.88,
+    "mean": 275.53
+  },
+  "lambeth__private room": {
+    "count": 1145,
+    "p25": 63.0,
+    "median": 82.74,
+    "p75": 108.0,
+    "mean": 108.6
+  },
+  "lambeth__shared room": {
+    "count": 11,
+    "p25": 34.5,
+    "median": 66.0,
+    "p75": 82.5,
+    "mean": 60.82
+  },
+  "lewisham__entire home/apt": {
+    "count": 907,
+    "p25": 126.9,
+    "median": 171.67,
+    "p75": 231.17,
+    "mean": 198.29
+  },
+  "lewisham__private room": {
+    "count": 649,
+    "p25": 52.0,
+    "median": 68.5,
+    "p75": 91.29,
+    "mean": 79.36
+  },
+  "lewisham__shared room": {
+    "count": 8,
+    "p25": 29.12,
+    "median": 37.5,
+    "p75": 64.5,
+    "mean": 46.46
+  },
+  "merton__entire home/apt": {
+    "count": 662,
+    "p25": 159.75,
+    "median": 226.44,
+    "p75": 342.88,
+    "mean": 280.72
+  },
+  "merton__private room": {
+    "count": 424,
+    "p25": 58.0,
+    "median": 80.0,
+    "p75": 115.85,
+    "mean": 101.69
+  },
+  "merton__shared room": {
+    "count": 2,
+    "p25": 27.25,
+    "median": 28.5,
+    "p75": 29.75,
+    "mean": 28.5
+  },
+  "newham__entire home/apt": {
+    "count": 1098,
+    "p25": 163.62,
+    "median": 217.45,
+    "p75": 295.8,
+    "mean": 244.84
+  },
+  "newham__hotel room": {
+    "count": 5,
+    "p25": 91.0,
+    "median": 107.0,
+    "p75": 379.5,
+    "mean": 232.17
+  },
+  "newham__private room": {
+    "count": 663,
+    "p25": 55.0,
+    "median": 73.0,
+    "p75": 100.75,
+    "mean": 97.14
+  },
+  "newham__shared room": {
+    "count": 7,
+    "p25": 63.5,
+    "median": 72.0,
+    "p75": 211.83,
+    "mean": 141.02
+  },
+  "redbridge__entire home/apt": {
+    "count": 368,
+    "p25": 122.43,
+    "median": 180.25,
+    "p75": 292.12,
+    "mean": 251.04
+  },
+  "redbridge__hotel room": {
+    "count": 1,
+    "p25": 81.0,
+    "median": 81.0,
+    "p75": 81.0,
+    "mean": 81.0
+  },
+  "redbridge__private room": {
+    "count": 406,
+    "p25": 50.75,
+    "median": 68.0,
+    "p75": 91.92,
+    "mean": 84.33
+  },
+  "redbridge__shared room": {
+    "count": 2,
+    "p25": 27.25,
+    "median": 27.5,
+    "p75": 27.75,
+    "mean": 27.5
+  },
+  "richmond upon thames__entire home/apt": {
+    "count": 559,
+    "p25": 160.77,
+    "median": 237.0,
+    "p75": 350.4,
+    "mean": 293.63
+  },
+  "richmond upon thames__private room": {
+    "count": 254,
+    "p25": 65.17,
+    "median": 90.0,
+    "p75": 122.92,
+    "mean": 104.69
+  },
+  "southwark__entire home/apt": {
+    "count": 1965,
+    "p25": 166.67,
+    "median": 230.5,
+    "p75": 331.5,
+    "mean": 271.15
+  },
+  "southwark__hotel room": {
+    "count": 3,
+    "p25": 108.5,
+    "median": 166.0,
+    "p75": 207.5,
+    "mean": 155.33
+  },
+  "southwark__private room": {
+    "count": 1175,
+    "p25": 67.0,
+    "median": 85.59,
+    "p75": 111.0,
+    "mean": 101.02
+  },
+  "southwark__shared room": {
+    "count": 7,
+    "p25": 42.47,
+    "median": 72.0,
+    "p75": 81.5,
+    "mean": 69.72
+  },
+  "sutton__entire home/apt": {
+    "count": 188,
+    "p25": 94.0,
+    "median": 136.75,
+    "p75": 197.75,
+    "mean": 163.73
+  },
+  "sutton__private room": {
+    "count": 178,
+    "p25": 49.17,
+    "median": 61.0,
+    "p75": 82.89,
+    "mean": 74.09
+  },
+  "tower hamlets__entire home/apt": {
+    "count": 2589,
+    "p25": 165.0,
+    "median": 223.2,
+    "p75": 308.5,
+    "mean": 259.85
+  },
+  "tower hamlets__hotel room": {
+    "count": 1,
+    "p25": 92.0,
+    "median": 92.0,
+    "p75": 92.0,
+    "mean": 92.0
+  },
+  "tower hamlets__private room": {
+    "count": 1440,
+    "p25": 64.0,
+    "median": 80.17,
+    "p75": 110.0,
+    "mean": 103.22
+  },
+  "tower hamlets__shared room": {
+    "count": 19,
+    "p25": 50.5,
+    "median": 55.0,
+    "p75": 72.76,
+    "mean": 68.67
+  },
+  "waltham forest__entire home/apt": {
+    "count": 684,
+    "p25": 128.19,
+    "median": 167.25,
+    "p75": 242.0,
+    "mean": 197.87
+  },
+  "waltham forest__private room": {
+    "count": 494,
+    "p25": 56.0,
+    "median": 72.0,
+    "p75": 92.8,
+    "mean": 82.85
+  },
+  "waltham forest__shared room": {
+    "count": 2,
+    "p25": 60.88,
+    "median": 66.75,
+    "p75": 72.62,
+    "mean": 66.75
+  },
+  "wandsworth__entire home/apt": {
+    "count": 1910,
+    "p25": 187.06,
+    "median": 267.75,
+    "p75": 386.19,
+    "mean": 318.01
+  },
+  "wandsworth__hotel room": {
+    "count": 3,
+    "p25": 106.5,
+    "median": 107.0,
+    "p75": 108.0,
+    "mean": 107.33
+  },
+  "wandsworth__private room": {
+    "count": 986,
+    "p25": 68.5,
+    "median": 88.0,
+    "p75": 114.0,
+    "mean": 101.73
+  },
+  "wandsworth__shared room": {
+    "count": 7,
+    "p25": 33.0,
+    "median": 35.0,
+    "p75": 127.9,
+    "mean": 90.54
+  },
+  "westminster__entire home/apt": {
+    "count": 6654,
+    "p25": 228.0,
+    "median": 340.0,
+    "p75": 532.65,
+    "mean": 418.42
+  },
+  "westminster__hotel room": {
+    "count": 21,
+    "p25": 165.0,
+    "median": 284.0,
+    "p75": 960.0,
+    "mean": 438.25
+  },
+  "westminster__private room": {
+    "count": 1300,
+    "p25": 95.0,
+    "median": 128.0,
+    "p75": 190.0,
+    "mean": 166.89
+  },
+  "westminster__shared room": {
+    "count": 35,
+    "p25": 22.5,
+    "median": 29.0,
+    "p75": 49.5,
+    "mean": 47.94
+  },
+  "barking and dagenham__all": {
+    "count": 540,
+    "p25": 58.0,
+    "median": 98.25,
+    "p75": 184.85,
+    "mean": 133.66
+  },
+  "barnet__all": {
+    "count": 1796,
+    "p25": 81.0,
+    "median": 137.0,
+    "p75": 211.62,
+    "mean": 167.27
+  },
+  "bexley__all": {
+    "count": 528,
+    "p25": 61.0,
+    "median": 93.67,
+    "p75": 176.5,
+    "mean": 140.32
+  },
+  "brent__all": {
+    "count": 2121,
+    "p25": 86.15,
+    "median": 150.0,
+    "p75": 265.0,
+    "mean": 202.64
+  },
+  "bromley__all": {
+    "count": 689,
+    "p25": 75.0,
+    "median": 133.0,
+    "p75": 190.5,
+    "mean": 153.64
+  },
+  "camden__all": {
+    "count": 4419,
+    "p25": 124.03,
+    "median": 218.0,
+    "p75": 346.59,
+    "mean": 266.48
+  },
+  "city of london__all": {
+    "count": 455,
+    "p25": 239.65,
+    "median": 324.0,
+    "p75": 460.25,
+    "mean": 380.33
+  },
+  "croydon__all": {
+    "count": 1336,
+    "p25": 62.0,
+    "median": 100.94,
+    "p75": 159.4,
+    "mean": 128.22
+  },
+  "ealing__all": {
+    "count": 1700,
+    "p25": 72.5,
+    "median": 111.0,
+    "p75": 182.0,
+    "mean": 154.41
+  },
+  "enfield__all": {
+    "count": 698,
+    "p25": 72.0,
+    "median": 112.75,
+    "p75": 203.53,
+    "mean": 153.92
+  },
+  "greenwich__all": {
+    "count": 1321,
+    "p25": 76.0,
+    "median": 140.57,
+    "p75": 219.67,
+    "mean": 169.9
+  },
+  "hackney__all": {
+    "count": 2907,
+    "p25": 105.0,
+    "median": 166.5,
+    "p75": 246.0,
+    "mean": 195.85
+  },
+  "hammersmith and fulham__all": {
+    "count": 2746,
+    "p25": 119.5,
+    "median": 198.0,
+    "p75": 296.92,
+    "mean": 240.07
+  },
+  "haringey__all": {
+    "count": 1540,
+    "p25": 83.0,
+    "median": 135.75,
+    "p75": 219.37,
+    "mean": 173.58
+  },
+  "harrow__all": {
+    "count": 506,
+    "p25": 70.0,
+    "median": 105.5,
+    "p75": 178.0,
+    "mean": 146.41
+  },
+  "havering__all": {
+    "count": 410,
+    "p25": 59.17,
+    "median": 110.0,
+    "p75": 191.42,
+    "mean": 146.52
+  },
+  "hillingdon__all": {
+    "count": 750,
+    "p25": 62.82,
+    "median": 100.0,
+    "p75": 178.75,
+    "mean": 148.03
+  },
+  "hounslow__all": {
+    "count": 980,
+    "p25": 75.75,
+    "median": 137.87,
+    "p75": 229.2,
+    "mean": 177.73
+  },
+  "islington__all": {
+    "count": 2694,
+    "p25": 119.0,
+    "median": 185.34,
+    "p75": 279.0,
+    "mean": 224.08
+  },
+  "kensington and chelsea__all": {
+    "count": 4465,
+    "p25": 193.75,
+    "median": 300.0,
+    "p75": 458.43,
+    "mean": 369.72
+  },
+  "kingston upon thames__all": {
+    "count": 479,
+    "p25": 81.28,
+    "median": 125.0,
+    "p75": 217.5,
+    "mean": 179.01
+  },
+  "lambeth__all": {
+    "count": 2938,
+    "p25": 89.0,
+    "median": 163.0,
+    "p75": 262.63,
+    "mean": 209.67
+  },
+  "lewisham__all": {
+    "count": 1564,
+    "p25": 71.0,
+    "median": 121.58,
+    "p75": 186.0,
+    "mean": 148.16
+  },
+  "merton__all": {
+    "count": 1088,
+    "p25": 85.59,
+    "median": 160.0,
+    "p75": 267.01,
+    "mean": 210.48
+  },
+  "newham__all": {
+    "count": 1773,
+    "p25": 85.2,
+    "median": 163.87,
+    "p75": 249.33,
+    "mean": 189.16
+  },
+  "redbridge__all": {
+    "count": 777,
+    "p25": 63.0,
+    "median": 104.0,
+    "p75": 187.0,
+    "mean": 163.13
+  },
+  "richmond upon thames__all": {
+    "count": 813,
+    "p25": 110.5,
+    "median": 179.6,
+    "p75": 296.5,
+    "mean": 234.6
+  },
+  "southwark__all": {
+    "count": 3150,
+    "p25": 95.09,
+    "median": 166.0,
+    "p75": 267.0,
+    "mean": 207.13
+  },
+  "sutton__all": {
+    "count": 366,
+    "p25": 61.0,
+    "median": 85.23,
+    "p75": 142.46,
+    "mean": 120.13
+  },
+  "tower hamlets__all": {
+    "count": 4049,
+    "p25": 92.0,
+    "median": 169.2,
+    "p75": 260.0,
+    "mean": 203.21
+  },
+  "waltham forest__all": {
+    "count": 1180,
+    "p25": 77.0,
+    "median": 122.0,
+    "p75": 190.0,
+    "mean": 149.5
+  },
+  "wandsworth__all": {
+    "count": 2906,
+    "p25": 104.0,
+    "median": 193.28,
+    "p75": 320.0,
+    "mean": 243.86
+  },
+  "westminster__all": {
+    "count": 8010,
+    "p25": 188.05,
+    "median": 299.0,
+    "p75": 488.0,
+    "mean": 376.03
+  },
+  "london__entire home/apt": {
+    "count": 41646,
+    "p25": 165.0,
+    "median": 237.5,
+    "p75": 358.75,
+    "mean": 297.22
+  },
+  "london__hotel room": {
+    "count": 108,
+    "p25": 90.5,
+    "median": 156.0,
+    "p75": 343.17,
+    "mean": 236.63
+  },
+  "london__private room": {
+    "count": 19758,
+    "p25": 60.2,
+    "median": 82.0,
+    "p75": 115.0,
+    "mean": 105.5
+  },
+  "london__shared room": {
+    "count": 182,
+    "p25": 30.25,
+    "median": 43.0,
+    "p75": 77.5,
+    "mean": 65.0
+  },
+  "london__all": {
+    "count": 61694,
+    "p25": 99.2,
+    "median": 179.0,
+    "p75": 296.8,
+    "mean": 235.03
+  }
+}

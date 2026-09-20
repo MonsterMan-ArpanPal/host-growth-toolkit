@@ -74,7 +74,11 @@ export default function CalendarPage() {
       
       let pricingData = [];
       try {
-        pricingData = await fetchPricingCalendar(selectedPropertyId, `${year}-${String(month + 1).padStart(2, '0')}-01`);
+        pricingData = await fetchPricingCalendar(
+          selectedPropertyId,
+          `${year}-${String(month + 1).padStart(2, '0')}-01`,
+          daysInMonth
+        );
       } catch (error) {
         console.error('Failed to load calendar pricing', error);
       }
@@ -149,7 +153,7 @@ export default function CalendarPage() {
       setCalendarDays(newDays);
       setActiveTurnoverDate(null);
       setLoading(false);
-    }, 350);
+    }, 50);
 
     return () => clearTimeout(refreshTimer);
   }, [selectedPropertyId, currentMonth, bookingsList]);
