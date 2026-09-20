@@ -1,39 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { bookings as mockBookings } from '../data/mockData';
 import { MessageCircle, Globe, Check, X, MessageSquare } from 'lucide-react';
 import WhatsAppModal from '../components/bookings/WhatsAppModal';
+import NoPropertiesEmptyState from '../components/dashboard/NoPropertiesEmptyState';
+import { getBookings, getProperties } from '../api/pricing';
 import './BookingsPage.css';
 
 export default function BookingsPage() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [propertiesLoading, setPropertiesLoading] = useState(true);
+  const [properties, setProperties] = useState([]);
   const [activeModalBooking, setActiveModalBooking] = useState(null);
 
   useEffect(() => {
-    // Fetch live bookings from backend
     const fetchBookings = async () => {
       try {
-        const res = await fetch('/api/bookings');
-        const data = await res.json();
-        
-        // Enhance mock data with random sources for the demo
-        const enhancedBookings = mockBookings.map((b, i) => ({
-          ...b,
-          source: i % 2 === 0 ? 'whatsapp' : 'web',
-        }));
-        
-        // Merge live bookings (from backend) with mock data
-        // Live bookings first
-        const allBookings = [...data.bookings, ...enhancedBookings];
-        setBookings(allBookings);
+        setBookings(await getBookings());
       } catch (err) {
         console.error("Failed to fetch bookings:", err);
-        // Fallback to mock only
-        const enhancedBookings = mockBookings.map((b, i) => ({
-          ...b,
-          source: i % 2 === 0 ? 'whatsapp' : 'web',
-        }));
-        setBookings(enhancedBookings);
+        setBookings([]);
       } finally {
         setLoading(false);
       }
@@ -44,6 +29,16 @@ export default function BookingsPage() {
     // Optional: Poll every 5 seconds for new WhatsApp messages
     const interval = setInterval(fetchBookings, 5000);
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    getProperties()
+      .then(setProperties)
+      .catch(error => {
+        console.error('Failed to load properties', error);
+        setProperties([]);
+      })
+      .finally(() => setPropertiesLoading(false));
   }, []);
 
   const handleAccept = (id) => {
@@ -73,8 +68,11 @@ export default function BookingsPage() {
     );
   };
 
+  const hasNoProperties = !propertiesLoading && properties.length === 0;
+
   return (
     <div className="bookings-page animate-fade-in-up">
+      {hasNoProperties ? <NoPropertiesEmptyState /> : <>
       <div className="bookings-header">
         <h1 className="page-title">Unified Bookings Queue</h1>
         <p className="page-subtitle">Manage reservations from Web and WhatsApp in one place</p>
@@ -155,6 +153,7 @@ export default function BookingsPage() {
           onClose={() => setActiveModalBooking(null)} 
         />
       )}
+      </>}
     </div>
   );
 }

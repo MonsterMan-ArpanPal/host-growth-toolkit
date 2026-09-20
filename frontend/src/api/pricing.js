@@ -10,11 +10,7 @@
 
 import {
   host,
-  properties,
-  bookings,
   earnings,
-  getPricingRecommendation as getDemoPricingRecommendation,
-  getPricingOpportunities,
 } from '../data/mockData';
 
 // Simulate network latency (200-400ms)
@@ -94,7 +90,8 @@ export async function getProperties() {
     console.warn('Backend properties unavailable, using fallback', err);
   }
 
-  // Offline fallback: the host's own property, then mock data.
+  // A property saved during setup is enough to keep the UI usable if the
+  // backend is temporarily unavailable. Never substitute demo properties.
   if (user.property_id || user.property_name) {
     return [{
       id: user.property_id || 'prop_custom_001',
@@ -105,31 +102,28 @@ export async function getProperties() {
     }];
   }
 
-  return properties;
+  return [];
 }
 
 export async function getProperty(propertyId) {
-  await delay(150);
-  // In production: GET /api/properties/:id
-  const prop = properties.find(p => p.id === propertyId);
+  const prop = (await getProperties()).find(property => property.id === propertyId);
   if (!prop) throw new Error(`Property ${propertyId} not found`);
   return prop;
 }
 
 // ─── Bookings ───────────────────────────────────────────────────
 export async function getBookings(propertyId) {
-  await delay(200);
-  // In production: GET /api/bookings?property_id=...
-  if (propertyId) {
-    return bookings.filter(b => b.propertyId === propertyId);
-  }
-  return bookings;
+  const response = await fetch('/api/bookings');
+  if (!response.ok) throw new Error(`Fetch bookings failed (${response.status})`);
+  const data = await response.json();
+  const liveBookings = Array.isArray(data.bookings) ? data.bookings : [];
+  return propertyId ? liveBookings.filter(booking => booking.propertyId === propertyId) : liveBookings;
 }
 
 export async function getUpcomingBookings() {
-  await delay(200);
   const today = new Date().toISOString().split('T')[0];
-  return bookings
+  const liveBookings = await getBookings();
+  return liveBookings
     .filter(b => b.checkIn >= today)
     .sort((a, b) => a.checkIn.localeCompare(b.checkIn));
 }
@@ -285,11 +279,6 @@ export async function fetchPricingRecommendation(propertyId, date) {
       eventContext: data.event_active ? `${data.event_name} (${data.event_type})` : null
     };
   } catch (err) {
-    // A frontend-only clone is still a usable product demo. Use its bundled,
-    // deterministic recommendation data when FastAPI is not running locally.
-    if (err instanceof TypeError) {
-      return getDemoPricingRecommendation(propertyId, date);
-    }
     console.error("FastAPI backend failed", err);
     throw err;
   }
@@ -334,9 +323,9 @@ export async function fetchPricingCalendar(propertyId, startDate) {
 }
 
 export async function fetchPricingOpportunities(propertyId) {
-  await delay(300);
-  // In production: GET /api/pricing/opportunities?property_id=...
-  return getPricingOpportunities(propertyId);
+  // Pricing opportunities have no live endpoint yet. Returning an empty list
+  // is preferable to showing invented recommendations.
+  return [];
 }
 
 // ─── Price Update ───────────────────────────────────────────────

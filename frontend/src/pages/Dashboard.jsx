@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowUpRight, TrendingUp, Calendar, Sparkles, ArrowRight } from 'lucide-react';
-import { getUpcomingBookings, fetchPricingOpportunities, getProperties } from '../api/pricing';
+import { getUpcomingBookings, getProperties } from '../api/pricing';
+import NoPropertiesEmptyState from '../components/dashboard/NoPropertiesEmptyState';
 import './Dashboard.css';
 
 const Dashboard = () => {
   const [bookings, setBookings] = useState([]);
   const [opportunities, setOpportunities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [properties, setProperties] = useState([]);
 
   useEffect(() => {
     document.title = 'Dashboard | host It';
@@ -14,31 +16,21 @@ const Dashboard = () => {
     const loadDashboardData = async () => {
       try {
         setLoading(true);
-        // Simulate a slight delay for realistic loading skeleton feel
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        const properties = await getProperties();
-        const defaultPropertyId = properties.length > 0 ? properties[0].id : 'prop_001';
-        
-        const [bookingsData, opportunitiesData] = await Promise.all([
-          getUpcomingBookings(),
-          fetchPricingOpportunities(defaultPropertyId)
-        ]);
-        
+        const hostProperties = await getProperties();
+        setProperties(hostProperties);
+        if (hostProperties.length === 0) {
+          setBookings([]);
+          setOpportunities([]);
+          return;
+        }
+        const bookingsData = await getUpcomingBookings();
         setBookings(bookingsData.slice(0, 4)); // Show top 4
-        setOpportunities(opportunitiesData.slice(0, 3)); // Show top 3
+        setOpportunities([]); // No live pricing-opportunities endpoint exists yet.
       } catch (error) {
         console.error("Failed to load dashboard data", error);
-        // Fallback dummy data if API fails or doesn't return anything
-        setBookings([
-          { id: '1', guestName: 'Sarah Jenkins', propertyName: 'The London Townhouse', checkIn: '2023-09-20', checkOut: '2023-09-23', status: 'confirmed', totalAmount: 540, avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=100&h=100&q=80' },
-          { id: '2', guestName: 'Michael Chen', propertyName: 'Brighton Sea View', checkIn: '2023-09-24', checkOut: '2023-09-28', status: 'pending', totalAmount: 720, avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=100&h=100&q=80' },
-          { id: '3', guestName: 'Emma Watson', propertyName: 'The London Townhouse', checkIn: '2023-10-02', checkOut: '2023-10-05', status: 'confirmed', totalAmount: 480, avatarUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=100&h=100&q=80' },
-          { id: '4', guestName: 'David Miller', propertyName: 'Cornwall Cottage', checkIn: '2023-10-12', checkOut: '2023-10-16', status: 'confirmed', totalAmount: 850, avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=100&h=100&q=80' }
-        ]);
-        setOpportunities([
-          { date: '2023-09-19', currentPrice: 150, recommendedPrice: 166, uplift: 16, reason: 'High demand weekend' }
-        ]);
+        setProperties([]);
+        setBookings([]);
+        setOpportunities([]);
       } finally {
         setLoading(false);
       }
@@ -83,6 +75,15 @@ const Dashboard = () => {
 
   const user = JSON.parse(localStorage.getItem('wayzyy_user') || '{}');
   const firstName = user.first_name || 'there';
+  const bookingRevenue = bookings.reduce((total, booking) => total + Number(booking.totalPrice ?? booking.totalAmount ?? 0), 0);
+  const bookedNights = bookings.reduce((total, booking) => total + Number(booking.nights || 0), 0);
+  const daysThisMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+  const occupancyRate = properties.length ? Math.round((bookedNights / (daysThisMonth * properties.length)) * 100) : 0;
+  const averageNightlyRate = bookedNights ? Math.round(bookingRevenue / bookedNights) : 0;
+
+  if (!loading && properties.length === 0) {
+    return <div className="dashboard-container"><NoPropertiesEmptyState /></div>;
+  }
 
   return (
     <div className="dashboard-container">
@@ -102,35 +103,19 @@ const Dashboard = () => {
       <section className="stats-grid">
         <div className="stat-card animate-fade-in-up stagger-1">
           <span className="stat-label">This Month's Revenue</span>
-          <span className="stat-value">£3,240</span>
-          <div className="stat-change positive">
-            <ArrowUpRight className="stat-change-icon" />
-            <span>12.5%</span>
-          </div>
+          <span className="stat-value">£{bookingRevenue.toLocaleString('en-GB')}</span>
         </div>
         <div className="stat-card animate-fade-in-up stagger-2">
           <span className="stat-label">Occupancy Rate</span>
-          <span className="stat-value">78%</span>
-          <div className="stat-change positive">
-            <ArrowUpRight className="stat-change-icon" />
-            <span>5.2%</span>
-          </div>
+          <span className="stat-value">{occupancyRate}%</span>
         </div>
         <div className="stat-card animate-fade-in-up stagger-3">
           <span className="stat-label">Avg Nightly Rate</span>
-          <span className="stat-value">£182</span>
-          <div className="stat-change positive">
-            <ArrowUpRight className="stat-change-icon" />
-            <span>8.1%</span>
-          </div>
+          <span className="stat-value">£{averageNightlyRate}</span>
         </div>
         <div className="stat-card animate-fade-in-up stagger-4">
           <span className="stat-label">Bookings</span>
-          <span className="stat-value">14</span>
-          <div className="stat-change positive">
-            <ArrowUpRight className="stat-change-icon" />
-            <span>16.7%</span>
-          </div>
+          <span className="stat-value">{bookings.length}</span>
         </div>
       </section>
 

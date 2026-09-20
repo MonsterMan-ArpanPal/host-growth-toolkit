@@ -9,33 +9,18 @@ import {
   Home,
   ShieldAlert
 } from 'lucide-react';
-import { getProperties } from '../api/pricing';
-import { generatePricingCalendar } from '../data/mockData';
-import { bookings as initialBookings } from '../data/mockData';
+import { fetchPricingCalendar, getBookings, getProperties } from '../api/pricing';
+import NoPropertiesEmptyState from '../components/dashboard/NoPropertiesEmptyState';
 import './CalendarPage.css';
-
-// Lets the default demo property show the turnover workflow before it has
-// connected reservations. Booking endpoints take precedence when present.
-const demoTurnoverWindows = {
-  demo_001: {
-    '2026-09-12': {
-      checkoutGuest: 'Maya R.',
-      checkinGuest: 'Oliver K.'
-    },
-    '2026-09-19': {
-      checkoutGuest: 'Nina P.',
-      checkinGuest: 'Theo B.'
-    }
-  }
-};
 
 export default function CalendarPage() {
   const [properties, setProperties] = useState([]);
   const [selectedPropertyId, setSelectedPropertyId] = useState('');
-  const [currentMonth, setCurrentMonth] = useState(new Date(2026, 8, 1)); // Sept 2026 for demo
+  const [currentMonth, setCurrentMonth] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [calendarDays, setCalendarDays] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [bookingsList, setBookingsList] = useState(initialBookings);
+  const [propertiesLoading, setPropertiesLoading] = useState(true);
+  const [bookingsList, setBookingsList] = useState([]);
   // Ref keeps manual holds across a property/month rebuild without causing a
   // new loading cycle every time the host clicks a date.
   const manuallyBlockedDatesRef = useRef(new Set());
@@ -52,25 +37,47 @@ export default function CalendarPage() {
 
   // Initialize properties
   useEffect(() => {
-    getProperties().then(props => {
-      setProperties(props);
-      if (props.length > 0) {
-        setSelectedPropertyId(props[0].id);
+    async function loadProperties() {
+      try {
+        const props = await getProperties();
+        setProperties(props);
+        if (props.length > 0) setSelectedPropertyId(props[0].id);
+      } catch (error) {
+        console.error('Failed to load properties', error);
+        setProperties([]);
+      } finally {
+        setPropertiesLoading(false);
       }
-    });
+    }
+    loadProperties();
   }, []);
+
+  useEffect(() => {
+    if (!selectedPropertyId) return;
+    getBookings(selectedPropertyId)
+      .then(setBookingsList)
+      .catch(error => {
+        console.error('Failed to load bookings', error);
+        setBookingsList([]);
+      });
+  }, [selectedPropertyId]);
 
   // Build calendar data whenever selectedPropertyId or currentMonth changes
   useEffect(() => {
     if (!selectedPropertyId) return;
     setLoading(true);
 
-    const refreshTimer = setTimeout(() => {
+    const refreshTimer = setTimeout(async () => {
       const year = currentMonth.getFullYear();
       const month = currentMonth.getMonth();
       const daysInMonth = new Date(year, month + 1, 0).getDate();
       
-      const pricingData = generatePricingCalendar(selectedPropertyId, `${year}-${String(month + 1).padStart(2, '0')}-01`);
+      let pricingData = [];
+      try {
+        pricingData = await fetchPricingCalendar(selectedPropertyId, `${year}-${String(month + 1).padStart(2, '0')}-01`);
+      } catch (error) {
+        console.error('Failed to load calendar pricing', error);
+      }
       
       // Get bookings specifically for this property
       const propertyBookings = bookingsList.filter(b => b.propertyId === selectedPropertyId);
@@ -104,15 +111,9 @@ export default function CalendarPage() {
         // Find bookings on this date
         const matchedBookings = propertyBookings.filter(b => dateStr >= b.checkIn && dateStr < b.checkOut);
         
-        // Check turnover / transition dates for this property
-        const scheduledTurnover = demoTurnoverWindows[selectedPropertyId]?.[dateStr];
+        // Turnover dates are derived only from live arrivals and departures.
         const checkingOutBookings = propertyBookings.filter(b => b.checkOut === dateStr);
         const checkingInBookings = propertyBookings.filter(b => b.checkIn === dateStr);
-
-        if (scheduledTurnover && checkingOutBookings.length === 0 && checkingInBookings.length === 0) {
-          checkingOutBookings.push({ id: `${dateStr}-checkout`, guestName: scheduledTurnover.checkoutGuest });
-          checkingInBookings.push({ id: `${dateStr}-checkin`, guestName: scheduledTurnover.checkinGuest });
-        }
         const isCheckOutDate = checkingOutBookings.length > 0;
         const isCheckInDate = checkingInBookings.length > 0;
         const requiresTurnover = isCheckOutDate || isCheckInDate;
@@ -136,7 +137,7 @@ export default function CalendarPage() {
           dayNum: i,
           status,
           dayBookings,
-          price: pricing ? pricing.recommendedPrice : 185,
+          price: pricing?.recommendedPrice ?? 0,
           requiresTurnover,
           isCheckOutDate,
           isCheckInDate,
@@ -182,8 +183,8 @@ export default function CalendarPage() {
   // Resolve conflict helper
   const handleResolveConflict = () => {
     if (!activeConflict) return;
-    // Keep the first reservation and remove its conflicting duplicate.
-    const resolved = bookingsList.filter(b => b.id !== 'bk_004_conflict');
+    // Keep the first reservation and remove the overlapping live reservation.
+    const resolved = bookingsList.filter(b => b.id !== activeConflict.b2.id);
     setBookingsList(resolved);
     setActiveConflict(null);
   };
@@ -230,9 +231,11 @@ export default function CalendarPage() {
   // A manually held night is a confirmed calendar stay until a reservation
   // record replaces it, so the total responds to each date the host blocks.
   const confirmedStayCount = monthBookings.length + blockedNights;
+  const hasNoProperties = !propertiesLoading && properties.length === 0;
 
   return (
     <div className="calendar-page animate-fade-in-up">
+      {hasNoProperties ? <NoPropertiesEmptyState /> : <>
       {/* ─── Conflict Alert Banner ────────────────────────────────── */}
       {activeConflict && (
         <div className="conflict-alert-banner">
@@ -501,6 +504,7 @@ export default function CalendarPage() {
           </div>
         </div>
       )}
+      </>}
     </div>
   );
 }

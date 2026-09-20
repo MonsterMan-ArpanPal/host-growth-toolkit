@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { TrendingUp } from 'lucide-react';
 import { fetchPricingRecommendation, fetchPricingCalendar, getProperties } from '../api/pricing';
+import NoPropertiesEmptyState from '../components/dashboard/NoPropertiesEmptyState';
 import PricingHero from '../components/pricing/PricingHero';
 import PricingFactors from '../components/pricing/PricingFactors';
 import ComparableListings from '../components/pricing/ComparableListings';
@@ -106,14 +105,7 @@ export default function PricingPage() {
       </div>}
 
       {hasNoProperties ? (
-        <div className="pricing-empty-state glass-card">
-          <div className="pricing-empty-icon"><TrendingUp size={30} /></div>
-          <h2>No properties listed yet</h2>
-          <p>Once you create your first listing, we’ll generate date-specific price recommendations based on its details and local market demand.</p>
-          <Link to="/dashboard/listings/new" className="pricing-empty-action">
-            Create your first listing
-          </Link>
-        </div>
+        <NoPropertiesEmptyState />
       ) : <>
 
       {error && <div className="error-banner">{error}</div>}
