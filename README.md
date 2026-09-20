@@ -316,7 +316,7 @@ Open your browser and navigate to **`http://localhost:5173`** to access the comp
 * **Lead Development:** [Saksham U.](https://github.com/)
                         | [Arpan Pal](https://github.com/MonsterMan-ArpanPal)
                         | [Mohit Sake](https://github.com/mohitsake13)
-                        | [Srishti Gupta](https://github.com/mohitsake13)
+                        | [Srishti Gupta](https://github.com/srishteaaa)
 * **Datasets:** London Market Data sourced from Inside Airbnb.
 * **Model Frameworks:** Built with Scikit-Learn, FastAPI, React, and OpenRouter AI.
 
