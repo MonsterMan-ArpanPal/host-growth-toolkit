@@ -41,7 +41,15 @@ export default function CalendarPage() {
       try {
         const props = await getProperties();
         setProperties(props);
-        if (props.length > 0) setSelectedPropertyId(props[0].id);
+        if (props.length > 0) {
+          // Match the Pricing tab: keep the host's active property selected
+          // when they move between dashboard views.
+          const user = JSON.parse(localStorage.getItem('wayzyy_user') || '{}');
+          const preferredPropertyId = props.some((property) => property.id === user.property_id)
+            ? user.property_id
+            : props[0].id;
+          setSelectedPropertyId(preferredPropertyId);
+        }
       } catch (error) {
         console.error('Failed to load properties', error);
         setProperties([]);
@@ -215,6 +223,12 @@ export default function CalendarPage() {
   const firstDayOffset = currentMonth.getDay() === 0 ? 6 : currentMonth.getDay() - 1;
   const emptyCells = Array.from({ length: firstDayOffset }, (_, i) => i);
   const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const today = new Date();
+  const todayDate = [
+    today.getFullYear(),
+    String(today.getMonth() + 1).padStart(2, '0'),
+    String(today.getDate()).padStart(2, '0'),
+  ].join('-');
   const monthBookings = bookingsList.filter(booking => (
     booking.propertyId === selectedPropertyId
     && booking.checkIn <= calendarDays[calendarDays.length - 1]?.date
@@ -333,11 +347,12 @@ export default function CalendarPage() {
             
             {calendarDays.map((day) => {
               const isInteractive = day.status === 'available' || day.status === 'blocked';
+              const isToday = day.date === todayDate;
               
               return (
                 <div 
                   key={day.date} 
-                  className={`calendar-cell status-${day.status} ${isInteractive ? 'interactive' : ''}`}
+                  className={`calendar-cell status-${day.status} ${isToday ? 'today' : ''} ${isInteractive ? 'interactive' : ''}`}
                   onClick={() => toggleDateStatus(day)}
                 >
                   <div className="cell-top">
