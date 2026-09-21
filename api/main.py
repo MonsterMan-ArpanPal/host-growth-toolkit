@@ -532,6 +532,9 @@ def list_properties(email: Optional[str] = None, include_demo: bool = False):
             "id": prop_id,
             "name": prop.get("name") or prop.get("host_neighbourhood", prop_id),
             "address": f"{prop.get('host_neighbourhood', 'London')}, London",
+            "location": prop.get("host_neighbourhood", "London"),
+            "latitude": prop.get("latitude"),
+            "longitude": prop.get("longitude"),
             "minPrice": 50,
             "maxPrice": 1000,
         })
@@ -543,6 +546,9 @@ def list_properties(email: Optional[str] = None, include_demo: bool = False):
             "id": doc.get("id"),
             "name": doc.get("name") or doc.get("listing_title") or "New Listing",
             "address": f"{doc.get('host_neighbourhood') or 'London'}, London",
+            "location": doc.get("host_neighbourhood") or doc.get("location") or "London",
+            "latitude": doc.get("latitude"),
+            "longitude": doc.get("longitude"),
             "minPrice": 50,
             "maxPrice": 1000,
         })
