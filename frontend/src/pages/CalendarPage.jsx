@@ -12,6 +12,7 @@ import {
 import { fetchPricingCalendar, getBookings, getProperties } from '../api/pricing';
 import NoPropertiesEmptyState from '../components/dashboard/NoPropertiesEmptyState';
 import ErrorBoundary from '../components/common/ErrorBoundary';
+import CalendarSyncSection from '../components/calendar/CalendarSyncSection';
 import './CalendarPage.css';
 
 export default function CalendarPage() {
@@ -470,6 +471,16 @@ export default function CalendarPage() {
               {blockedNights > 0 && <em>· {blockedNights} manual {blockedNights === 1 ? 'hold' : 'holds'}</em>}
             </div>
           </footer>
+
+          {/* ─── iCal Channel Sync Section ─────────────────────────── */}
+          <CalendarSyncSection
+            propertyId={selectedPropertyId}
+            onSyncSuccess={() => {
+              getBookings(selectedPropertyId)
+                .then(setBookingsList)
+                .catch((err) => console.error('Failed to reload bookings after sync', err));
+            }}
+          />
         </>
       )}
 

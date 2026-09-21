@@ -16,7 +16,7 @@ function safeFormatDate(dateStr) {
   }
 }
 
-function CalendarSyncContent({ propertyId }) {
+function CalendarSyncContent({ propertyId, onSyncSuccess }) {
   const [sync, setSync] = useState({ export_url: '', blocks: [], imports: [] });
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(true);
@@ -93,6 +93,9 @@ function CalendarSyncContent({ propertyId }) {
         `Successfully synced ${importedCount} dates${skippedCount ? `; ${skippedCount} conflicts were safely skipped` : ''}.`
       );
       setUrl('');
+      if (typeof onSyncSuccess === 'function') {
+        onSyncSuccess(result);
+      }
     } catch (err) {
       console.error('External iCal sync failed:', err);
       // Graceful error fallback state: notify user without breaking the component or React state
@@ -106,7 +109,7 @@ function CalendarSyncContent({ propertyId }) {
 
   if (loading) {
     return (
-      <div className="glass-card dl-section calendar-sync-section">
+      <div className="glass-card calendar-sync-section">
         <div className="skeleton" style={{ height: '180px' }} />
       </div>
     );
@@ -116,7 +119,7 @@ function CalendarSyncContent({ propertyId }) {
   const imports = Array.isArray(sync?.imports) ? sync.imports : [];
 
   return (
-    <section className="glass-card dl-section calendar-sync-section">
+    <section className="glass-card calendar-sync-section">
       <div className="calendar-sync-heading">
         <div className="calendar-sync-icon">
           <CalendarDays size={18} />
@@ -127,43 +130,52 @@ function CalendarSyncContent({ propertyId }) {
         </div>
       </div>
 
-      <div className="calendar-export-card">
-        <label htmlFor="calendar-export-url">Your HostIt export link</label>
-        <p>Paste this read-only iCal feed into Google Calendar, Apple Calendar, Airbnb, or any other OTA.</p>
-        <div className="calendar-export-url">
-          <input
-            id="calendar-export-url"
-            value={sync?.export_url || ''}
-            readOnly
-            aria-label="HostIt iCal export URL"
-          />
-          <button type="button" onClick={copyExportUrl} title="Copy export link">
-            <Copy size={16} /> Copy
-          </button>
+      <div className="calendar-sync-grid-row">
+        <div className="calendar-export-card">
+          <div>
+            <label htmlFor="calendar-export-url">HostIt Export Link</label>
+            <p>Paste this read-only iCal link into Google Calendar, Apple Calendar, Airbnb, or Vrbo to sync your bookings.</p>
+          </div>
+          <div className="calendar-export-url">
+            <input
+              id="calendar-export-url"
+              value={sync?.export_url || ''}
+              readOnly
+              aria-label="HostIt iCal export URL"
+            />
+            <button type="button" onClick={copyExportUrl} title="Copy export link">
+              <Copy size={16} /> Copy
+            </button>
+          </div>
+        </div>
+
+        <div className="calendar-import-card">
+          <div>
+            <label htmlFor="calendar-import-url">Import External iCal Feed</label>
+            <p>Paste an external calendar URL (e.g. Google Calendar or Airbnb) to block dates automatically.</p>
+          </div>
+          <form className="calendar-import-form" onSubmit={syncNow}>
+            <div className="calendar-import-row">
+              <span>
+                <LinkIcon size={16} />
+              </span>
+              <input
+                id="calendar-import-url"
+                type="url"
+                value={url}
+                onChange={(event) => setUrl(event.target.value)}
+                placeholder="https://.../basic.ics"
+                required
+                disabled={syncing}
+              />
+              <button className="calendar-sync-button" disabled={syncing || !url.trim()} type="submit">
+                <RefreshCw size={16} className={syncing ? 'spin' : ''} />
+                {syncing ? 'Syncing…' : 'Sync Now'}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
-
-      <form className="calendar-import-form" onSubmit={syncNow}>
-        <label htmlFor="calendar-import-url">Import an external iCal link</label>
-        <div className="calendar-import-row">
-          <span>
-            <LinkIcon size={16} />
-          </span>
-          <input
-            id="calendar-import-url"
-            type="url"
-            value={url}
-            onChange={(event) => setUrl(event.target.value)}
-            placeholder="https://.../basic.ics"
-            required
-            disabled={syncing}
-          />
-          <button className="calendar-sync-button" disabled={syncing || !url.trim()} type="submit">
-            <RefreshCw size={16} className={syncing ? 'spin' : ''} />
-            {syncing ? 'Syncing…' : 'Sync Now'}
-          </button>
-        </div>
-      </form>
 
       {/* Fallback Toast / Error Notification */}
       {error && (
@@ -274,14 +286,14 @@ function CalendarSyncContent({ propertyId }) {
   );
 }
 
-export default function CalendarSyncSection({ propertyId }) {
+export default function CalendarSyncSection({ propertyId, onSyncSuccess }) {
   return (
     <ErrorBoundary
       compact
       fallbackTitle="Calendar sync temporarily unavailable"
       fallback={(err, reset) => (
         <div
-          className="glass-card dl-section calendar-sync-section"
+          className="glass-card calendar-sync-section"
           style={{
             padding: '20px',
             border: '1px solid rgba(239, 68, 68, 0.3)',
@@ -318,7 +330,7 @@ export default function CalendarSyncSection({ propertyId }) {
         </div>
       )}
     >
-      <CalendarSyncContent propertyId={propertyId} />
+      <CalendarSyncContent propertyId={propertyId} onSyncSuccess={onSyncSuccess} />
     </ErrorBoundary>
   );
 }
